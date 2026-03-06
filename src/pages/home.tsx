@@ -168,7 +168,18 @@ export default function Home() {
     document.querySelector("main")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const featuredShops = coffeeShops.slice(0, 3);
+  // Featured shops — rotate every 8 seconds through high-rated shops
+  const topShops = useMemo(() => coffeeShops.filter(s => s.rating >= 4.7).sort((a, b) => b.reviews - a.reviews), []);
+  const [featuredOffset, setFeaturedOffset] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setFeaturedOffset(o => (o + 3) % topShops.length), 8000);
+    return () => clearInterval(id);
+  }, [topShops.length]);
+  const featuredShops = useMemo(() => {
+    const result = [];
+    for (let i = 0; i < 3; i++) result.push(topShops[(featuredOffset + i) % topShops.length]);
+    return result;
+  }, [featuredOffset, topShops]);
   const filteredShops = coffeeShops.filter((shop) => {
     const matchesSearch = shop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       shop.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -247,6 +258,16 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Passport CTA banner */}
+      <div className="bg-amber-900 text-white py-3 px-4">
+        <div className="container mx-auto flex items-center justify-between gap-4 max-w-5xl">
+          <p className="text-sm font-medium opacity-90">📖 Track every shop you visit with your personal Coffee Passport</p>
+          <a href="#/passport" className="shrink-0 text-xs font-bold bg-white text-amber-900 px-4 py-1.5 rounded-full hover:bg-amber-50 transition-colors">
+            Open Passport →
+          </a>
+        </div>
+      </div>
+
       {/* Main content */}
       <main className="container mx-auto px-4 py-16 -mt-20 relative z-20">
         {/* Mobile dropdown */}
@@ -291,7 +312,13 @@ export default function Home() {
             {/* Featured shops */}
             <div className="mb-20">
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-3xl font-serif font-bold text-foreground">Featured Shops</h2>
+                <div>
+                  <h2 className="text-3xl font-serif font-bold text-foreground">Featured Shops</h2>
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    Rotating highlights from our top-rated spots
+                  </p>
+                </div>
                 <button onClick={() => { setSelectedArea("All"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                   className="flex items-center gap-2 text-primary hover:text-primary/80 font-semibold text-sm transition-colors">
                   View All <ArrowRight className="w-4 h-4" />
@@ -299,7 +326,7 @@ export default function Home() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {featuredShops.map((shop) => (
-                  <CoffeeCard key={shop.id} shop={shop} />
+                  <CoffeeCard key={`${shop.id}-${featuredOffset}`} shop={shop} />
                 ))}
               </div>
             </div>
@@ -435,6 +462,7 @@ export default function Home() {
           <div className="flex justify-center gap-6 text-sm font-medium opacity-80">
             <a href="#" className="hover:opacity-100 transition-opacity">About</a>
             <a href="#" className="hover:opacity-100 transition-opacity">Add a Shop</a>
+            <a href="#/passport" className="hover:opacity-100 transition-opacity">☕ Coffee Passport</a>
             <a href="#" className="hover:opacity-100 transition-opacity">Contact</a>
           </div>
           <div className="mt-12 pt-8 border-t border-primary-foreground/10 opacity-40 text-xs">
