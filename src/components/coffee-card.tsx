@@ -244,12 +244,13 @@ function ShopModal({ shop, onClose }: { shop: CoffeeShop; onClose: () => void })
                 <span className="inline-block bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full mb-2">{shop.area}</span>
                 <h2 className="text-3xl font-serif font-bold text-foreground">{shop.name}</h2>
               </div>
-              <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm mb-1">
+              <a href={`https://www.google.com/search?q=${encodeURIComponent(shop.name + ' ' + shop.address)}`} target="_blank" rel="noopener noreferrer"
+                className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm mb-1 hover:bg-white transition-colors">
                 <GoogleIcon className="w-4 h-4" />
                 <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
                 <span className="text-sm font-bold text-gray-800">{rating}</span>
                 <span className="text-xs text-gray-500">({reviewCount} reviews)</span>
-              </div>
+              </a>
             </div>
           </div>
           <div className="p-8">
@@ -259,7 +260,8 @@ function ShopModal({ shop, onClose }: { shop: CoffeeShop; onClose: () => void })
                 <MapPin className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-semibold text-foreground">Address</p>
-                  <p className="text-sm text-muted-foreground">{shop.address}</p>
+                  <a href={shop.googleMapsUrl} target="_blank" rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground hover:text-primary hover:underline">{shop.address}</a>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 pt-2">
@@ -296,12 +298,14 @@ export function CoffeeCard({ shop }: { shop: CoffeeShop }) {
         className="overflow-hidden group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card rounded-2xl flex flex-col h-full cursor-pointer hover:-translate-y-1">
         <div className="relative aspect-[4/3] overflow-hidden">
           <ShopImage shop={shop} className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" />
-          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-2 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+          <a href={`https://www.google.com/search?q=${encodeURIComponent(shop.name + ' ' + shop.address)}`} target="_blank" rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-2 py-1 rounded-full flex items-center gap-1.5 shadow-sm hover:bg-white transition-colors">
             <GoogleIcon className="w-3 h-3" />
             <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
             <span className="text-xs font-bold text-gray-800">{rating}</span>
             <span className="text-[10px] text-gray-500">({reviewCount})</span>
-          </div>
+          </a>
         </div>
         <div className="p-4 pb-2">
           <h3 className="font-serif text-xl font-bold text-foreground leading-tight mb-1">{shop.name}</h3>
@@ -311,7 +315,9 @@ export function CoffeeCard({ shop }: { shop: CoffeeShop }) {
         </div>
         <div className="p-4 py-2 flex-grow">
           <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-3">{shop.description}</p>
-          <p className="text-xs text-muted-foreground/70 mb-3">{shop.address}</p>
+          <a href={shop.googleMapsUrl} target="_blank" rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-xs text-muted-foreground/70 mb-3 hover:text-primary hover:underline">{shop.address}</a>
           <div className="flex flex-wrap gap-1 mt-auto">
             {shop.tags.map((tag) => (
               <span key={tag} className="inline-block bg-secondary text-secondary-foreground text-[10px] px-2 py-0.5 rounded-full font-normal">{tag}</span>
@@ -333,3 +339,4 @@ export function CoffeeCard({ shop }: { shop: CoffeeShop }) {
     </>
   );
 }
+
