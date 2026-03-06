@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { Search, MapPin, Coffee, ArrowRight, X, Navigation, Loader2 } from "lucide-react";
 import { coffeeShops, areas } from "@/lib/coffee-shops";
 import { CoffeeCard } from "@/components/coffee-card";
-import { Map, Overlay, ZoomControl } from "pigeon-maps";
+import { Map as PigeonMap, Overlay, ZoomControl } from "pigeon-maps";
 import type { CoffeeShop } from "@/lib/coffee-shops";
 
 const warmMapProvider = (x: number, y: number, z: number) =>
@@ -322,7 +322,7 @@ export default function Home() {
                 </a>
               </div>
               <div className="relative h-[500px] md:h-auto overflow-hidden bg-[#f3f1ed]" style={{ filter: "sepia(0.25) saturate(0.9) brightness(1.05)" }}>
-                <Map
+                <PigeonMap
                   center={mapCenter}
                   zoom={mapZoom}
                   onBoundsChanged={({ center, zoom }) => { setMapCenter(center); setMapZoom(zoom); }}
@@ -355,7 +355,7 @@ export default function Home() {
                       </Overlay>
                     )
                   )}
-                </Map>
+                </PigeonMap>
                 {/* Locate Me button */}
                 <button
                   onClick={handleLocateMe}
