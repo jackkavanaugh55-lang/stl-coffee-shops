@@ -59,7 +59,18 @@ export default function Home() {
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const suggestions = useMemo(() => {
+  const [submitForm, setSubmitForm] = useState({ shopName: "", address: "", website: "", notes: "" });
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  const handleSubmitShop = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const data = new FormData(form);
+    await fetch("/", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(data as any).toString() });
+    setSubmitSuccess(true);
+  };
+
+(() => {
     if (!searchTerm.trim()) return [];
     return areas.filter(a => a !== "All" && a.toLowerCase().includes(searchTerm.toLowerCase()))
       .sort((a, b) => {
@@ -237,7 +248,43 @@ export default function Home() {
         )}
       </main>
 
-      {/* Footer */}
+      {/* Submit a shop */}
+      <section className="max-w-2xl mx-auto text-center px-4 py-16 mb-8">
+        <div className="bg-gradient-to-br from-secondary to-muted/40 rounded-3xl p-10 border border-border/50 shadow-sm">
+          <div className="text-4xl mb-4">☕</div>
+          <h2 className="text-2xl font-serif font-bold text-foreground mb-2">Don't see your favorite spot?</h2>
+          <p className="text-muted-foreground mb-6">Submit it here and we'll add it to the directory!</p>
+          {!submitSuccess ? (
+            <form name="shop-submission" method="POST" data-netlify="true" onSubmit={handleSubmitShop} className="space-y-3 text-left">
+              <input type="hidden" name="form-name" value="shop-submission" />
+              <input name="shopName" placeholder="Coffee shop name *" required value={submitForm.shopName}
+                onChange={e => setSubmitForm(p => ({...p, shopName: e.target.value}))}
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              <input name="address" placeholder="Address *" required value={submitForm.address}
+                onChange={e => setSubmitForm(p => ({...p, address: e.target.value}))}
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              <input name="website" placeholder="Website or Instagram (optional)" value={submitForm.website}
+                onChange={e => setSubmitForm(p => ({...p, website: e.target.value}))}
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              <textarea name="notes" placeholder="Anything else we should know? (optional)" value={submitForm.notes}
+                onChange={e => setSubmitForm(p => ({...p, notes: e.target.value}))}
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" rows={2} />
+              <button type="submit"
+                className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors">
+                Submit Shop ✉️
+              </button>
+            </form>
+          ) : (
+            <div className="py-8">
+              <div className="text-5xl mb-4">🎉</div>
+              <p className="text-lg font-serif font-bold text-foreground mb-1">Thanks for the tip!</p>
+              <p className="text-muted-foreground text-sm">We'll check it out and add it soon.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+
       <footer className="bg-primary text-primary-foreground py-12 mt-20">
         <div className="container mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-6 opacity-80">
@@ -267,3 +314,4 @@ export default function Home() {
     </div>
   );
 }
+
