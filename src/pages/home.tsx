@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Search, MapPin, Coffee, ArrowRight, X } from "lucide-react";
 import { coffeeShops, areas } from "@/lib/coffee-shops";
 import { CoffeeCard } from "@/components/coffee-card";
@@ -61,6 +61,13 @@ export default function Home() {
 
   const [submitForm, setSubmitForm] = useState({ shopName: "", address: "", website: "", notes: "" });
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 500);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const handleSubmitShop = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -162,25 +169,42 @@ export default function Home() {
 
       {/* Main content */}
       <main className="container mx-auto px-4 py-16 -mt-20 relative z-20">
-        {/* Area filter pills */}
-        <div className="mb-12">
-          <div className="flex flex-wrap gap-1 md:gap-2 justify-center max-w-7xl mx-auto">
-            <button onClick={() => { setSelectedArea(null); setSearchTerm(""); }}
-              className={`px-3 py-1.5 rounded-md text-[10px] md:text-[11px] font-bold transition-all duration-200 border uppercase tracking-tight whitespace-nowrap ${
-                selectedArea === null ? "bg-primary border-primary text-primary-foreground shadow-sm scale-105" : "bg-white/60 backdrop-blur-sm border-border/40 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-white shadow-sm"
-              }`}>
-              Home
-            </button>
-            {sortedAreas.map((area) => (
-              <button key={area} onClick={() => setSelectedArea(area)}
-                className={`px-3 py-1.5 rounded-md text-[10px] md:text-[11px] font-bold transition-all duration-200 border uppercase tracking-tight whitespace-nowrap ${
-                  selectedArea === area ? "bg-primary border-primary text-primary-foreground shadow-sm scale-105" : "bg-white/60 backdrop-blur-sm border-border/40 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-white shadow-sm"
-                }`}>
-                {area}
-              </button>
+        {/* Mobile dropdown */}
+        <div className="mb-8 md:hidden">
+          <select
+            value={selectedArea ?? "home"}
+            onChange={e => {
+              const v = e.target.value;
+              if (v === "home") { setSelectedArea(null); setSearchTerm(""); }
+              else setSelectedArea(v);
+            }}
+            className="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm"
+          >
+            <option value="home">🏠 Home</option>
+            {sortedAreas.map(area => (
+              <option key={area} value={area}>{area}</option>
             ))}
-          </div>
+          </select>
         </div>
+
+        {/* Desktop filter pills */}
+        <div className="hidden md:flex flex-wrap gap-1 md:gap-2 justify-center max-w-7xl mx-auto mb-12">
+          <button onClick={() => { setSelectedArea(null); setSearchTerm(""); }}
+            className={`px-3 py-1.5 rounded-md text-[10px] md:text-[11px] font-bold transition-all duration-200 border uppercase tracking-tight whitespace-nowrap ${
+              selectedArea === null ? "bg-primary border-primary text-primary-foreground shadow-sm scale-105" : "bg-white/60 backdrop-blur-sm border-border/40 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-white shadow-sm"
+            }`}>
+            Home
+          </button>
+          {sortedAreas.map((area) => (
+            <button key={area} onClick={() => setSelectedArea(area)}
+              className={`px-3 py-1.5 rounded-md text-[10px] md:text-[11px] font-bold transition-all duration-200 border uppercase tracking-tight whitespace-nowrap ${
+                selectedArea === area ? "bg-primary border-primary text-primary-foreground shadow-sm scale-105" : "bg-white/60 backdrop-blur-sm border-border/40 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-white shadow-sm"
+              }`}>
+              {area}
+            </button>
+          ))}
+        </div>
+
 
         {isHomeLanding ? (
           <>
@@ -305,6 +329,17 @@ export default function Home() {
         </div>
       </footer>
 
+      {/* Back to top */}
+      {showBackToTop && (
+        <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center hover:bg-primary/90 transition-all hover:scale-110"
+          aria-label="Back to top">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+          </svg>
+        </button>
+      )}
+
       <style>{`
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(20px); }
@@ -314,4 +349,5 @@ export default function Home() {
     </div>
   );
 }
+
 
