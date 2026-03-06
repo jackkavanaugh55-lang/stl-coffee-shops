@@ -12,6 +12,10 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Netlify form detection -->
+    <form name="shop-submission" data-netlify="true" hidden>
+      <input name="shopName" /><input name="address" /><input name="website" /><textarea name="notes"></textarea>
+    </form>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
