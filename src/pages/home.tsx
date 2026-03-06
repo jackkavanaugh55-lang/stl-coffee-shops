@@ -1,12 +1,32 @@
-import { useState, useMemo, useEffect } from "react";
-import { Search, MapPin, Coffee, ArrowRight, X } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { Search, MapPin, Coffee, ArrowRight, X, Navigation, Loader2 } from "lucide-react";
 import { coffeeShops, areas } from "@/lib/coffee-shops";
 import { CoffeeCard } from "@/components/coffee-card";
-import { Map, Marker, Overlay, ZoomControl } from "pigeon-maps";
+import { Map, Overlay, ZoomControl } from "pigeon-maps";
 import type { CoffeeShop } from "@/lib/coffee-shops";
 
 const warmMapProvider = (x: number, y: number, z: number) =>
   `https://a.basemaps.cartocdn.com/light_all/${z}/${x}/${y}@2x.png`;
+
+// --- Clustering logic ---
+type Cluster = { lat: number; lng: number; shops: CoffeeShop[] };
+
+function clusterShops(shops: CoffeeShop[], zoom: number): Cluster[] {
+  // Grid cell size in degrees — shrinks as zoom increases so clusters break apart
+  const gridSize = 40 / Math.pow(2, zoom);
+  const cells = new Map<string, CoffeeShop[]>();
+  for (const shop of shops) {
+    const key = `${Math.floor(shop.lat / gridSize)},${Math.floor(shop.lng / gridSize)}`;
+    const cell = cells.get(key) ?? [];
+    cell.push(shop);
+    cells.set(key, cell);
+  }
+  return Array.from(cells.values()).map((group) => ({
+    lat: group.reduce((s, s2) => s + s2.lat, 0) / group.length,
+    lng: group.reduce((s, s2) => s + s2.lng, 0) / group.length,
+    shops: group,
+  }));
+}
 
 function CoffeeMapPin({ shop, onClick }: { shop: CoffeeShop; onClick: () => void }) {
   const [hovered, setHovered] = useState(false);
@@ -54,6 +74,28 @@ function CoffeeMapPin({ shop, onClick }: { shop: CoffeeShop; onClick: () => void
   );
 }
 
+function ClusterPin({ count, onClick }: { count: number; onClick: () => void }) {
+  const size = count > 20 ? 52 : count > 10 ? 46 : 38;
+  return (
+    <div onClick={onClick} style={{ transform: `translate(-${size / 2}px, -${size / 2}px)`, width: size, height: size }}
+      className="cursor-pointer group">
+      <div className="w-full h-full rounded-full bg-[#8B5E3C] border-4 border-white shadow-lg flex items-center justify-center transition-transform duration-200 group-hover:scale-110">
+        <span className="text-white font-bold text-xs leading-none">{count}</span>
+      </div>
+    </div>
+  );
+}
+
+function UserLocationPin() {
+  return (
+    <div style={{ transform: "translate(-10px, -10px)" }}>
+      <div className="w-5 h-5 rounded-full bg-blue-500 border-2 border-white shadow-lg relative">
+        <div className="absolute inset-0 rounded-full bg-blue-500/30 animate-ping" />
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
@@ -63,6 +105,29 @@ export default function Home() {
   const [submitForm, setSubmitForm] = useState({ shopName: "", address: "", website: "", notes: "" });
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+
+  // Map state
+  const [mapCenter, setMapCenter] = useState<[number, number]>([38.6272, -90.2979]);
+  const [mapZoom, setMapZoom] = useState(11);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [locating, setLocating] = useState(false);
+
+  const handleLocateMe = useCallback(() => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setUserLocation(loc);
+        setMapCenter(loc);
+        setMapZoom(14);
+        setLocating(false);
+      },
+      () => setLocating(false)
+    );
+  }, []);
+
+  const clusters = useMemo(() => clusterShops(coffeeShops, mapZoom), [mapZoom]);
 
   // Deep link: open shop modal if ?shop=id is in the URL
   useEffect(() => {
@@ -257,17 +322,51 @@ export default function Home() {
                 </a>
               </div>
               <div className="relative h-[500px] md:h-auto overflow-hidden bg-[#f3f1ed]" style={{ filter: "sepia(0.25) saturate(0.9) brightness(1.05)" }}>
-                <Map defaultCenter={[38.6272, -90.2979]} defaultZoom={11} metaWheelZoom={true} provider={warmMapProvider} attribution={false}>
+                <Map
+                  center={mapCenter}
+                  zoom={mapZoom}
+                  onBoundsChanged={({ center, zoom }) => { setMapCenter(center); setMapZoom(zoom); }}
+                  metaWheelZoom={true}
+                  provider={warmMapProvider}
+                  attribution={false}
+                >
                   <ZoomControl />
-                  {coffeeShops.map(shop => (
-                    <Overlay key={shop.id} anchor={[shop.lat, shop.lng]} offset={[0, 0]}>
-                      <CoffeeMapPin shop={shop} onClick={() => {
-                        setSearchTerm(shop.name); setSelectedArea("All");
-                        document.querySelector("main")?.scrollIntoView({ behavior: "smooth" });
-                      }} />
+                  {/* User location pin */}
+                  {userLocation && (
+                    <Overlay anchor={userLocation} offset={[0, 0]}>
+                      <UserLocationPin />
                     </Overlay>
-                  ))}
+                  )}
+                  {/* Clustered pins */}
+                  {clusters.map((cluster, i) =>
+                    cluster.shops.length === 1 ? (
+                      <Overlay key={cluster.shops[0].id} anchor={[cluster.lat, cluster.lng]} offset={[0, 0]}>
+                        <CoffeeMapPin shop={cluster.shops[0]} onClick={() => {
+                          setSearchTerm(cluster.shops[0].name);
+                          document.querySelector("main")?.scrollIntoView({ behavior: "smooth" });
+                        }} />
+                      </Overlay>
+                    ) : (
+                      <Overlay key={`cluster-${i}`} anchor={[cluster.lat, cluster.lng]} offset={[0, 0]}>
+                        <ClusterPin count={cluster.shops.length} onClick={() => {
+                          setMapCenter([cluster.lat, cluster.lng]);
+                          setMapZoom(mapZoom + 2);
+                        }} />
+                      </Overlay>
+                    )
+                  )}
                 </Map>
+                {/* Locate Me button */}
+                <button
+                  onClick={handleLocateMe}
+                  disabled={locating}
+                  className="absolute bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 bg-white rounded-full shadow-lg border border-border text-sm font-semibold text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all disabled:opacity-60"
+                >
+                  {locating
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Locating...</>
+                    : <><Navigation className="w-4 h-4" /> Locate Me</>
+                  }
+                </button>
               </div>
             </section>
           </>
