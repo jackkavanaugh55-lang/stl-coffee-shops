@@ -271,9 +271,9 @@ function ShopModal({ shop, onClose }: { shop: CoffeeShop; onClose: () => void })
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <a href={shop.menuUrl} target="_blank" rel="noopener noreferrer"
+              <a href={shop.menuUrl && shop.menuUrl !== "#" ? shop.menuUrl : `https://www.google.com/search?q=${encodeURIComponent(shop.name + " St Louis menu")}`} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 py-3 px-4 border-2 border-border rounded-xl text-sm font-semibold text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors">
-                <Menu className="w-4 h-4" /> View Menu
+                <Menu className="w-4 h-4" /> {shop.menuUrl && shop.menuUrl !== "#" ? "View Menu" : "Find Website"}
               </a>
               <a href={shop.googleMapsUrl} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 py-3 px-4 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors">
@@ -339,4 +339,5 @@ export function CoffeeCard({ shop }: { shop: CoffeeShop }) {
     </>
   );
 }
+
 
