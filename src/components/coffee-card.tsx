@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Star, MapPin, ExternalLink, Menu, Map, Info, MessageCircle, Send, User, ChevronLeft, ChevronRight, Camera, X } from "lucide-react";
+import { Star, MapPin, ExternalLink, Menu, Map, Info, MessageCircle, Send, User, ChevronLeft, ChevronRight, Camera, X, Share2, Check } from "lucide-react";
 import type { CoffeeShop } from "@/lib/coffee-shops";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -224,9 +224,27 @@ function ReviewSection({ shopId }: { shopId: string }) {
   );
 }
 
+function useShareShop(shopId: string) {
+  const [copied, setCopied] = useState(false);
+  const share = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/?shop=${shopId}`;
+    if (navigator.share) {
+      navigator.share({ title: "Check out this STL coffee shop!", url });
+    } else {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    }
+  }, [shopId]);
+  return { share, copied };
+}
+
 // Modal component
 function ShopModal({ shop, onClose }: { shop: CoffeeShop; onClose: () => void }) {
   const { rating, reviewCount } = useGoogleRating(shop);
+  const { share, copied } = useShareShop(shop.id);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
@@ -270,7 +288,7 @@ function ShopModal({ shop, onClose }: { shop: CoffeeShop; onClose: () => void })
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <a href={shop.menuUrl && shop.menuUrl !== "#" ? shop.menuUrl : `https://www.google.com/search?q=${encodeURIComponent(shop.name + " St Louis menu")}`} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 py-3 px-4 border-2 border-border rounded-xl text-sm font-semibold text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors">
                 <Menu className="w-4 h-4" /> {shop.menuUrl && shop.menuUrl !== "#" ? "View Menu" : "Find Website"}
@@ -279,6 +297,10 @@ function ShopModal({ shop, onClose }: { shop: CoffeeShop; onClose: () => void })
                 className="flex items-center justify-center gap-2 py-3 px-4 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors">
                 <Map className="w-4 h-4" /> Get Directions
               </a>
+              <button onClick={share}
+                className="flex items-center justify-center gap-2 py-3 px-4 border-2 border-border rounded-xl text-sm font-semibold text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors">
+                {copied ? <><Check className="w-4 h-4 text-green-500" /> Copied!</> : <><Share2 className="w-4 h-4" /> Share</>}
+              </button>
             </div>
             <ReviewSection shopId={shop.id} />
           </div>
@@ -288,9 +310,15 @@ function ShopModal({ shop, onClose }: { shop: CoffeeShop; onClose: () => void })
   );
 }
 
-export function CoffeeCard({ shop }: { shop: CoffeeShop }) {
-  const [open, setOpen] = useState(false);
+export function CoffeeCard({ shop, forceOpen, onModalClose }: { shop: CoffeeShop; forceOpen?: boolean; onModalClose?: () => void }) {
+  const [open, setOpen] = useState(forceOpen ?? false);
   const { rating, reviewCount } = useGoogleRating(shop);
+  const { share, copied } = useShareShop(shop.id);
+
+  const handleClose = () => {
+    setOpen(false);
+    onModalClose?.();
+  };
 
   return (
     <>
@@ -324,7 +352,7 @@ export function CoffeeCard({ shop }: { shop: CoffeeShop }) {
             ))}
           </div>
         </div>
-        <div className="p-4 pt-2 grid grid-cols-2 gap-2">
+        <div className="p-4 pt-2 grid grid-cols-3 gap-2">
           <button className="flex items-center justify-center gap-1 py-1.5 px-3 border border-primary/20 rounded-lg text-xs font-medium text-foreground hover:bg-primary/5 hover:text-primary transition-colors">
             <Info className="w-3 h-3" /> Details
           </button>
@@ -333,11 +361,13 @@ export function CoffeeCard({ shop }: { shop: CoffeeShop }) {
             className="flex items-center justify-center gap-1 py-1.5 px-3 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:bg-primary/90 transition-colors">
             <Map className="w-3 h-3" /> Directions
           </a>
+          <button onClick={share}
+            className="flex items-center justify-center gap-1 py-1.5 px-3 border border-primary/20 rounded-lg text-xs font-medium text-foreground hover:bg-primary/5 hover:text-primary transition-colors">
+            {copied ? <><Check className="w-3 h-3 text-green-500" /> Copied!</> : <><Share2 className="w-3 h-3" /> Share</>}
+          </button>
         </div>
       </div>
-      {open && <ShopModal shop={shop} onClose={() => setOpen(false)} />}
+      {open && <ShopModal shop={shop} onClose={handleClose} />}
     </>
   );
 }
-
-
