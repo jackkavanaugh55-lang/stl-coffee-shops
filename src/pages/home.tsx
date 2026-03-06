@@ -168,11 +168,11 @@ export default function Home() {
     document.querySelector("main")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Featured shops — rotate every 8 seconds through high-rated shops
+  // Featured shops — rotate every hour through high-rated shops
   const topShops = useMemo(() => coffeeShops.filter(s => s.rating >= 4.7).sort((a, b) => b.reviews - a.reviews), []);
   const [featuredOffset, setFeaturedOffset] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setFeaturedOffset(o => (o + 3) % topShops.length), 8000);
+    const id = setInterval(() => setFeaturedOffset(o => (o + 3) % topShops.length), 60 * 60 * 1000);
     return () => clearInterval(id);
   }, [topShops.length]);
   const featuredShops = useMemo(() => {
@@ -199,6 +199,10 @@ export default function Home() {
       }} />}
       {/* Hero */}
       <section className="relative h-[60vh] md:h-[70vh] flex items-center justify-center overflow-hidden">
+        {/* Passport button top-left */}
+        <a href="#/passport" className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-black/30 hover:bg-black/50 backdrop-blur-sm text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors border border-white/20">
+          📖 My Passport
+        </a>
         <div className="absolute inset-0 z-0">
           <img src="https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?q=80&w=2000&auto=format&fit=crop"
             alt="Coffee Shop" className="w-full h-full object-cover" />
@@ -257,16 +261,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Passport CTA banner */}
-      <div className="bg-amber-900 text-white py-3 px-4">
-        <div className="container mx-auto flex items-center justify-between gap-4 max-w-5xl">
-          <p className="text-sm font-medium opacity-90">📖 Track every shop you visit with your personal Coffee Passport</p>
-          <a href="#/passport" className="shrink-0 text-xs font-bold bg-white text-amber-900 px-4 py-1.5 rounded-full hover:bg-amber-50 transition-colors">
-            Open Passport →
-          </a>
-        </div>
-      </div>
 
       {/* Main content */}
       <main className="container mx-auto px-4 py-16 -mt-20 relative z-20">
