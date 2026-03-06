@@ -58,10 +58,21 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [deepLinkedShop, setDeepLinkedShop] = useState<CoffeeShop | null>(null);
 
   const [submitForm, setSubmitForm] = useState({ shopName: "", address: "", website: "", notes: "" });
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+
+  // Deep link: open shop modal if ?shop=id is in the URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shopId = params.get("shop");
+    if (shopId) {
+      const found = coffeeShops.find((s) => s.id === shopId);
+      if (found) setDeepLinkedShop(found);
+    }
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 500);
@@ -106,6 +117,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
+      {deepLinkedShop && <CoffeeCard shop={deepLinkedShop} forceOpen onModalClose={() => {
+        setDeepLinkedShop(null);
+        window.history.replaceState({}, "", window.location.pathname);
+      }} />}
       {/* Hero */}
       <section className="relative h-[60vh] md:h-[70vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
@@ -349,6 +364,3 @@ export default function Home() {
     </div>
   );
 }
-
-
-
