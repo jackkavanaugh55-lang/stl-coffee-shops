@@ -77,7 +77,7 @@ export default function Home() {
     setSubmitSuccess(true);
   };
 
-(() => {
+  const suggestions = useMemo(() => {
     if (!searchTerm.trim()) return [];
     return areas.filter(a => a !== "All" && a.toLowerCase().includes(searchTerm.toLowerCase()))
       .sort((a, b) => {
@@ -349,5 +349,6 @@ export default function Home() {
     </div>
   );
 }
+
 
 
