@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Coffee, ArrowLeft, Star, MapPin, CheckCircle2, Plus, X, ChevronDown, ChevronUp, Award, TrendingUp, Map } from "lucide-react";
+import { Coffee, ArrowLeft, Star, MapPin, Plus, X, ChevronDown, ChevronUp, Award, TrendingUp, Map as MapIcon } from "lucide-react";
 import { coffeeShops } from "@/lib/coffee-shops";
 import type { CoffeeShop } from "@/lib/coffee-shops";
 
@@ -307,6 +307,7 @@ export default function Passport() {
               <div>
                 <p className="text-amber-300 text-xs font-bold uppercase tracking-widest mb-1">STL Coffee Spot</p>
                 <h1 className="font-serif text-4xl font-bold leading-tight">Coffee<br/>Passport</h1>
+                <p className="text-amber-200/80 text-sm mt-2 font-light">Track your coffee shop stops across St. Louis</p>
               </div>
               <div className="text-6xl opacity-80">📖</div>
             </div>
@@ -390,7 +391,7 @@ export default function Passport() {
         {/* Area Progress */}
         <div>
           <h2 className="font-serif text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Map className="w-5 h-5 text-amber-700" /> Progress by Area
+            <MapIcon className="w-5 h-5 text-amber-700" /> Progress by Area
           </h2>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
             {areaStats.map(([area, stats]) => (
