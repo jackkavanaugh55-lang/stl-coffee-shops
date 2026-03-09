@@ -102,6 +102,23 @@ export function Home() {
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [deepLinkedShop, setDeepLinkedShop] = useState<CoffeeShop | null>(null);
+  const [mapSelectedShop, setMapSelectedShop] = useState<CoffeeShop | null>(null);
+
+  const openShopModal = (shop: CoffeeShop) => {
+    setMapSelectedShop(shop);
+    window.history.pushState({ shopModal: shop.id }, "");
+  };
+
+  const closeShopModal = () => {
+    setMapSelectedShop(null);
+  };
+
+  // Handle browser back button closing the modal
+  useEffect(() => {
+    const onPop = () => setMapSelectedShop(null);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   const [submitForm, setSubmitForm] = useState({ shopName: "", address: "", website: "", notes: "" });
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -221,6 +238,7 @@ export function Home() {
         setDeepLinkedShop(null);
         window.history.replaceState({}, "", window.location.pathname);
       }} />}
+      {mapSelectedShop && <CoffeeCard shop={mapSelectedShop} forceOpen onModalClose={closeShopModal} />}
       {/* Hero */}
       <section className="relative h-[60vh] md:h-[70vh] flex items-center justify-center overflow-hidden">
         {/* Passport button top-left */}
@@ -392,10 +410,7 @@ export function Home() {
                         <CoffeeMapPin
                           shop={cluster.shops[0]}
                           showLabel={isMobile && mapZoom >= 14}
-                          onClick={() => {
-                            setSearchTerm(cluster.shops[0].name);
-                            document.querySelector("main")?.scrollIntoView({ behavior: "smooth" });
-                          }} />
+                          onClick={() => openShopModal(cluster.shops[0])} />
                       </Overlay>
                     ) : (
                       <Overlay key={`cluster-${i}`} anchor={[cluster.lat, cluster.lng]} offset={[0, 0]}>
