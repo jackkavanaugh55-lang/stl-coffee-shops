@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Search, MapPin, Coffee, ArrowRight, X, Navigation, Loader2, Send } from "lucide-react";
 import { coffeeShops, areas } from "@/lib/coffee-shops";
 import { CoffeeCard } from "@/components/coffee-card";
@@ -152,6 +152,20 @@ export function Home() {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locating, setLocating] = useState(false);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  // Prevent browser from stealing pinch-zoom gestures on mobile
+  useEffect(() => {
+    const el = mapContainerRef.current;
+    if (!el) return;
+    const prevent = (e: TouchEvent) => { if (e.touches.length >= 2) e.preventDefault(); };
+    el.addEventListener("touchmove", prevent, { passive: false });
+    el.addEventListener("touchstart", prevent, { passive: false });
+    return () => {
+      el.removeEventListener("touchmove", prevent);
+      el.removeEventListener("touchstart", prevent);
+    };
+  }, []);
 
   const handleLocateMe = useCallback(() => {
     if (!navigator.geolocation) return;
@@ -374,7 +388,7 @@ export function Home() {
             </div>
 
             {/* Map section */}
-            <section className="bg-card rounded-3xl overflow-hidden shadow-2xl border border-border/50 grid md:grid-cols-2 mb-20 min-h-[500px]">
+            <section className="bg-card rounded-3xl shadow-2xl border border-border/50 grid md:grid-cols-2 mb-20 min-h-[500px]" style={{ overflow: "hidden" }}>
               <div className="p-8 md:p-12 flex flex-col justify-center bg-gradient-to-br from-card to-muted/30">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-6 w-fit">
                   <MapPin className="w-3 h-3" /> Interactive Explorer
@@ -390,7 +404,7 @@ export function Home() {
                   Get Real-time Directions
                 </a>
               </div>
-              <div className="relative h-[500px] md:h-auto bg-[#f3f1ed]" style={{ filter: "sepia(0.25) saturate(0.9) brightness(1.05)", touchAction: "none" }}>
+              <div ref={mapContainerRef} className="relative h-[500px] md:h-auto bg-[#f3f1ed]" style={{ filter: "sepia(0.25) saturate(0.9) brightness(1.05)", touchAction: "none", userSelect: "none" }}>
                 <PigeonMap
                   center={mapCenter}
                   zoom={mapZoom}
