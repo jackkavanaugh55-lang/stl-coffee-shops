@@ -450,6 +450,14 @@ export function CoffeeCard({ shop, forceOpen, onModalClose }: { shop: CoffeeShop
     onModalClose?.();
   };
 
+  // Close on browser back button
+  useEffect(() => {
+    if (!open) return;
+    const onPop = () => handleClose();
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [open]);
+
   return (
     <>
       <div onClick={handleOpen}
