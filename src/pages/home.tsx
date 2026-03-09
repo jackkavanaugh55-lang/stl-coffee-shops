@@ -28,8 +28,9 @@ function clusterShops(shops: CoffeeShop[], zoom: number): Cluster[] {
   }));
 }
 
-function CoffeeMapPin({ shop, onClick }: { shop: CoffeeShop; onClick: () => void }) {
+function CoffeeMapPin({ shop, onClick, showLabel }: { shop: CoffeeShop; onClick: () => void; showLabel?: boolean }) {
   const [hovered, setHovered] = useState(false);
+  const visible = hovered || showLabel;
   return (
     <div className="relative cursor-pointer"
       onMouseEnter={() => setHovered(true)}
@@ -59,11 +60,11 @@ function CoffeeMapPin({ shop, onClick }: { shop: CoffeeShop; onClick: () => void
           </g>
         </svg>
       </div>
-      {hovered && (
+      {visible && (
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-50 pointer-events-none">
-          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-amber-100 px-4 py-2.5 whitespace-nowrap">
-            <p className="text-sm font-bold text-amber-950">{shop.name}</p>
-            <p className="text-xs text-amber-600 mt-0.5">{shop.area} · ★ {shop.rating}</p>
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-amber-100 px-3 py-1.5 whitespace-nowrap">
+            <p className="text-xs font-bold text-amber-950">{shop.name}</p>
+            {hovered && <p className="text-[10px] text-amber-600 mt-0.5">{shop.area} · ★ {shop.rating}</p>}
           </div>
           <div className="flex justify-center -mt-1">
             <div className="w-3 h-3 bg-white/95 border-r border-b border-amber-100 rotate-45"></div>
@@ -133,6 +134,7 @@ export function Home() {
   const [mapZoom, setMapZoom] = useState(11);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locating, setLocating] = useState(false);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   const handleLocateMe = useCallback(() => {
     if (!navigator.geolocation) return;
@@ -370,30 +372,30 @@ export function Home() {
                   Get Real-time Directions
                 </a>
               </div>
-              <div className="relative h-[500px] md:h-auto overflow-hidden bg-[#f3f1ed]" style={{ filter: "sepia(0.25) saturate(0.9) brightness(1.05)" }}>
+              <div className="relative h-[500px] md:h-auto bg-[#f3f1ed]" style={{ filter: "sepia(0.25) saturate(0.9) brightness(1.05)", touchAction: "none" }}>
                 <PigeonMap
                   center={mapCenter}
                   zoom={mapZoom}
                   onBoundsChanged={({ center, zoom }) => { setMapCenter(center); setMapZoom(zoom); }}
-                  metaWheelZoom={true}
                   provider={warmMapProvider}
                   attribution={false}
                 >
                   <ZoomControl />
-                  {/* User location pin */}
                   {userLocation && (
                     <Overlay anchor={userLocation} offset={[0, 0]}>
                       <UserLocationPin />
                     </Overlay>
                   )}
-                  {/* Clustered pins */}
                   {clusters.map((cluster, i) =>
                     cluster.shops.length === 1 ? (
                       <Overlay key={cluster.shops[0].id} anchor={[cluster.lat, cluster.lng]} offset={[0, 0]}>
-                        <CoffeeMapPin shop={cluster.shops[0]} onClick={() => {
-                          setSearchTerm(cluster.shops[0].name);
-                          document.querySelector("main")?.scrollIntoView({ behavior: "smooth" });
-                        }} />
+                        <CoffeeMapPin
+                          shop={cluster.shops[0]}
+                          showLabel={isMobile && mapZoom >= 14}
+                          onClick={() => {
+                            setSearchTerm(cluster.shops[0].name);
+                            document.querySelector("main")?.scrollIntoView({ behavior: "smooth" });
+                          }} />
                       </Overlay>
                     ) : (
                       <Overlay key={`cluster-${i}`} anchor={[cluster.lat, cluster.lng]} offset={[0, 0]}>
