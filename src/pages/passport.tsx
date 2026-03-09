@@ -3,6 +3,24 @@ import { Coffee, ArrowLeft, Star, MapPin, Plus, X, ChevronDown, ChevronUp, Award
 import { coffeeShops } from "@/lib/coffee-shops";
 import type { CoffeeShop } from "@/lib/coffee-shops";
 
+function BackToTop() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const handler = () => setShow(window.scrollY > 400);
+    window.addEventListener("scroll", handler);
+    return () => window.removeEventListener("scroll", handler);
+  }, []);
+  if (!show) return null;
+  return (
+    <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-amber-800 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-amber-700 transition-all hover:scale-110">
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+      </svg>
+    </button>
+  );
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface CheckIn {
@@ -487,6 +505,9 @@ export default function Passport() {
           <p className="text-xs text-gray-400 text-center mt-2">Click an area to expand its shops</p>
         </div>
       </main>
+
+      {/* Back to top */}
+      <BackToTop />
 
       {/* Modals */}
       {checkInTarget && (
