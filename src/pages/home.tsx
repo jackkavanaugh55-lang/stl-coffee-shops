@@ -2,17 +2,68 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Search, MapPin, Coffee, ArrowRight, X, Navigation, Loader2, Send } from "lucide-react";
 import { coffeeShops, areas } from "@/lib/coffee-shops";
 import { CoffeeCard } from "@/components/coffee-card";
-import { Map as PigeonMap, Overlay, ZoomControl } from "pigeon-maps";
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
+import L from "leaflet";
 import type { CoffeeShop } from "@/lib/coffee-shops";
 
-const warmMapProvider = (x: number, y: number, z: number) =>
-  `https://a.basemaps.cartocdn.com/light_all/${z}/${x}/${y}@2x.png`;
+// Fix leaflet default icon paths
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow });
 
-// --- Clustering logic ---
+// Custom coffee pin icon
+function makeCoffeeIcon(label?: string) {
+  const svg = `<svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="sh" x="-4" y="-2" width="40" height="50">
+        <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#000" flood-opacity="0.3"/>
+      </filter>
+      <linearGradient id="gr" x1="16" y1="0" x2="16" y2="42" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#8B5E3C"/>
+        <stop offset="100%" stop-color="#5C3A1E"/>
+      </linearGradient>
+    </defs>
+    <path d="M16 0C7.163 0 0 7.163 0 16c0 12 16 26 16 26s16-14 16-26C32 7.163 24.837 0 16 0z" fill="url(#gr)" filter="url(#sh)"/>
+    <circle cx="16" cy="14.5" r="9" fill="#FFF8F0"/>
+    <g transform="translate(9.5,8.5)">
+      <rect x="2" y="2" width="8" height="7" rx="1" fill="none" stroke="#6F4E37" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M10 3.5C10 3.5 12.5 3.5 12.5 5.5C12.5 7.5 10 7.5 10 7.5" fill="none" stroke="#6F4E37" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M4 0.5C4 0.5 4.5 1.8 4 2" stroke="#A0826D" stroke-width="0.8" stroke-linecap="round"/>
+      <path d="M6 0C6 0 6.5 1.3 6 1.5" stroke="#A0826D" stroke-width="0.8" stroke-linecap="round"/>
+      <path d="M8 0.5C8 0.5 8.5 1.8 8 2" stroke="#A0826D" stroke-width="0.8" stroke-linecap="round"/>
+    </g>
+  </svg>`;
+
+  const labelHtml = label
+    ? `<div style="position:absolute;bottom:44px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.95);border:1px solid #f5e6d3;border-radius:8px;padding:3px 8px;white-space:nowrap;font-size:11px;font-weight:700;color:#3b1f0a;box-shadow:0 2px 8px rgba(0,0,0,0.15)">${label}</div>`
+    : "";
+
+  return L.divIcon({
+    html: `<div style="position:relative">${labelHtml}<div style="width:32px;height:42px">${svg}</div></div>`,
+    iconSize: [32, 42],
+    iconAnchor: [16, 42],
+    popupAnchor: [0, -44],
+    className: "",
+  });
+}
+
+function makeClusterIcon(count: number) {
+  const size = count > 20 ? 52 : count > 10 ? 46 : 38;
+  return L.divIcon({
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:#8B5E3C;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center">
+      <span style="color:white;font-weight:700;font-size:${count > 99 ? 10 : 13}px">${count}</span>
+    </div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    className: "",
+  });
+}
+
+// Clustering logic
 type Cluster = { lat: number; lng: number; shops: CoffeeShop[] };
-
 function clusterShops(shops: CoffeeShop[], zoom: number): Cluster[] {
-  // Grid cell size in degrees — shrinks as zoom increases so clusters break apart
   const gridSize = 40 / Math.pow(2, zoom);
   const cells = new Map<string, CoffeeShop[]>();
   for (const shop of shops) {
@@ -28,72 +79,87 @@ function clusterShops(shops: CoffeeShop[], zoom: number): Cluster[] {
   }));
 }
 
-function CoffeeMapPin({ shop, onClick, showLabel }: { shop: CoffeeShop; onClick: () => void; showLabel?: boolean }) {
-  const [hovered, setHovered] = useState(false);
-  const visible = hovered || showLabel;
+// Component that syncs external center/zoom state with Leaflet map
+function MapController({ center, zoom, onBoundsChanged }: {
+  center: [number, number];
+  zoom: number;
+  onBoundsChanged: (center: [number, number], zoom: number) => void;
+}) {
+  const map = useMap();
+  const lastCenter = useRef(center);
+  const lastZoom = useRef(zoom);
+
+  useEffect(() => {
+    if (
+      Math.abs(lastCenter.current[0] - center[0]) > 0.0001 ||
+      Math.abs(lastCenter.current[1] - center[1]) > 0.0001 ||
+      lastZoom.current !== zoom
+    ) {
+      map.setView(center, zoom, { animate: true });
+      lastCenter.current = center;
+      lastZoom.current = zoom;
+    }
+  }, [center, zoom, map]);
+
+  useMapEvents({
+    moveend: () => {
+      const c = map.getCenter();
+      const z = map.getZoom();
+      lastCenter.current = [c.lat, c.lng];
+      lastZoom.current = z;
+      onBoundsChanged([c.lat, c.lng], z);
+    },
+    zoomend: () => {
+      const c = map.getCenter();
+      const z = map.getZoom();
+      lastCenter.current = [c.lat, c.lng];
+      lastZoom.current = z;
+      onBoundsChanged([c.lat, c.lng], z);
+    },
+  });
+  return null;
+}
+
+// The actual map rendered inside MapContainer
+function LeafletMapInner({ mapCenter, mapZoom, userLocation, clusters, onBoundsChanged, onShopClick, onClusterClick }: {
+  mapCenter: [number, number];
+  mapZoom: number;
+  userLocation: [number, number] | null;
+  clusters: Cluster[];
+  onBoundsChanged: (c: [number, number], z: number) => void;
+  onShopClick: (shop: CoffeeShop) => void;
+  onClusterClick: (lat: number, lng: number) => void;
+}) {
+  const userIcon = L.divIcon({
+    html: `<div style="width:20px;height:20px;border-radius:50%;background:#3b82f6;border:3px solid white;box-shadow:0 0 0 4px rgba(59,130,246,0.3)"></div>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+    className: "",
+  });
+
   return (
-    <div className="relative cursor-pointer"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={onClick}
-      style={{ transform: "translate(-16px, -42px)" }}>
-      <div className="relative transition-transform duration-200" style={{ transform: hovered ? "scale(1.25)" : "scale(1)" }}>
-        <svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <filter id={`shadow-${shop.id}`} x="-4" y="-2" width="40" height="50">
-              <feDropShadow dx="0" dy="2" stdDeviation="2.5" floodColor="#000" floodOpacity="0.3"/>
-            </filter>
-            <linearGradient id={`grad-${shop.id}`} x1="16" y1="0" x2="16" y2="42" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#8B5E3C"/>
-              <stop offset="100%" stopColor="#5C3A1E"/>
-            </linearGradient>
-          </defs>
-          <path d="M16 0C7.163 0 0 7.163 0 16c0 12 16 26 16 26s16-14 16-26C32 7.163 24.837 0 16 0z"
-            fill={`url(#grad-${shop.id})`} filter={`url(#shadow-${shop.id})`} />
-          <circle cx="16" cy="14.5" r="9" fill="#FFF8F0" />
-          <g transform="translate(9.5, 8.5)">
-            <rect x="2" y="2" width="8" height="7" rx="1" fill="none" stroke="#6F4E37" strokeWidth="1.5" strokeLinecap="round"/>
-            <path d="M10 3.5C10 3.5 12.5 3.5 12.5 5.5C12.5 7.5 10 7.5 10 7.5" fill="none" stroke="#6F4E37" strokeWidth="1.3" strokeLinecap="round"/>
-            <path d="M4 0.5C4 0.5 4.5 1.8 4 2" stroke="#A0826D" strokeWidth="0.8" strokeLinecap="round"/>
-            <path d="M6 0C6 0 6.5 1.3 6 1.5" stroke="#A0826D" strokeWidth="0.8" strokeLinecap="round"/>
-            <path d="M8 0.5C8 0.5 8.5 1.8 8 2" stroke="#A0826D" strokeWidth="0.8" strokeLinecap="round"/>
-          </g>
-        </svg>
-      </div>
-      {visible && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-50 pointer-events-none">
-          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-amber-100 px-3 py-1.5 whitespace-nowrap">
-            <p className="text-xs font-bold text-amber-950">{shop.name}</p>
-            {hovered && <p className="text-[10px] text-amber-600 mt-0.5">{shop.area} · ★ {shop.rating}</p>}
-          </div>
-          <div className="flex justify-center -mt-1">
-            <div className="w-3 h-3 bg-white/95 border-r border-b border-amber-100 rotate-45"></div>
-          </div>
-        </div>
+    <>
+      <MapController center={mapCenter} zoom={mapZoom} onBoundsChanged={onBoundsChanged} />
+      <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
+      {userLocation && <Marker position={userLocation} icon={userIcon} />}
+      {clusters.map((cluster, i) =>
+        cluster.shops.length === 1 ? (
+          <Marker
+            key={cluster.shops[0].id}
+            position={[cluster.lat, cluster.lng]}
+            icon={makeCoffeeIcon(mapZoom >= 14 ? cluster.shops[0].name : undefined)}
+            eventHandlers={{ click: () => onShopClick(cluster.shops[0]) }}
+          />
+        ) : (
+          <Marker
+            key={`cluster-${i}`}
+            position={[cluster.lat, cluster.lng]}
+            icon={makeClusterIcon(cluster.shops.length)}
+            eventHandlers={{ click: () => onClusterClick(cluster.lat, cluster.lng) }}
+          />
+        )
       )}
-    </div>
-  );
-}
-
-function ClusterPin({ count, onClick }: { count: number; onClick: () => void }) {
-  const size = count > 20 ? 52 : count > 10 ? 46 : 38;
-  return (
-    <div onClick={onClick} style={{ transform: `translate(-${size / 2}px, -${size / 2}px)`, width: size, height: size }}
-      className="cursor-pointer group">
-      <div className="w-full h-full rounded-full bg-[#8B5E3C] border-4 border-white shadow-lg flex items-center justify-center transition-transform duration-200 group-hover:scale-110">
-        <span className="text-white font-bold text-xs leading-none">{count}</span>
-      </div>
-    </div>
-  );
-}
-
-function UserLocationPin() {
-  return (
-    <div style={{ transform: "translate(-10px, -10px)" }}>
-      <div className="w-5 h-5 rounded-full bg-blue-500 border-2 border-white shadow-lg relative">
-        <div className="absolute inset-0 rounded-full bg-blue-500/30 animate-ping" />
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -153,21 +219,6 @@ export function Home() {
   const [mapZoom, setMapZoom] = useState(11);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locating, setLocating] = useState(false);
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-
-  // Prevent browser from stealing pinch-zoom gestures on mobile
-  useEffect(() => {
-    const el = mapContainerRef.current;
-    if (!el) return;
-    const prevent = (e: TouchEvent) => { if (e.touches.length >= 2) e.preventDefault(); };
-    el.addEventListener("touchmove", prevent, { passive: false });
-    el.addEventListener("touchstart", prevent, { passive: false });
-    return () => {
-      el.removeEventListener("touchmove", prevent);
-      el.removeEventListener("touchstart", prevent);
-    };
-  }, []);
 
   const handleLocateMe = useCallback(() => {
     if (!navigator.geolocation) return;
@@ -406,52 +457,32 @@ export function Home() {
                   Get Real-time Directions
                 </a>
               </div>
-              <div ref={mapContainerRef} className="relative h-[500px] md:h-auto bg-[#e8eaf0]" style={{ filter: "grayscale(0.3) brightness(0.96) contrast(0.9) saturate(0.5)", touchAction: "none", userSelect: "none" }}>
-                <PigeonMap
+              <div className="relative h-[500px] md:h-auto bg-[#e8eaf0]">
+                <MapContainer
                   center={mapCenter}
                   zoom={mapZoom}
-                  onBoundsChanged={({ center, zoom }) => { setMapCenter(center); setMapZoom(zoom); }}
-                  provider={warmMapProvider}
-                  attribution={false}
+                  style={{ width: "100%", height: "100%", minHeight: 500 }}
+                  zoomControl={true}
+                  scrollWheelZoom={false}
                 >
-                  <ZoomControl />
-                  {userLocation && (
-                    <Overlay anchor={userLocation} offset={[0, 0]}>
-                      <UserLocationPin />
-                    </Overlay>
-                  )}
-                  {clusters.map((cluster, i) =>
-                    cluster.shops.length === 1 ? (
-                      <Overlay key={cluster.shops[0].id} anchor={[cluster.lat, cluster.lng]} offset={[0, 0]}>
-                        <CoffeeMapPin
-                          shop={cluster.shops[0]}
-                          showLabel={isMobile && mapZoom >= 14}
-                          onClick={() => openShopModal(cluster.shops[0])} />
-                      </Overlay>
-                    ) : (
-                      <Overlay key={`cluster-${i}`} anchor={[cluster.lat, cluster.lng]} offset={[0, 0]}>
-                        <ClusterPin count={cluster.shops.length} onClick={() => {
-                          setMapCenter([cluster.lat, cluster.lng]);
-                          setMapZoom(mapZoom + 2);
-                        }} />
-                      </Overlay>
-                    )
-                  )}
-                </PigeonMap>
+                  <LeafletMapInner
+                    mapCenter={mapCenter}
+                    mapZoom={mapZoom}
+                    userLocation={userLocation}
+                    clusters={clusters}
+                    onBoundsChanged={(c, z) => { setMapCenter(c); setMapZoom(z); }}
+                    onShopClick={openShopModal}
+                    onClusterClick={(lat, lng) => { setMapCenter([lat, lng]); setMapZoom(mapZoom + 2); }}
+                  />
+                </MapContainer>
                 {/* Locate Me button */}
-                <button
-                  onClick={handleLocateMe}
-                  disabled={locating}
-                  className="absolute bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 bg-white rounded-full shadow-lg border border-border text-sm font-semibold text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all disabled:opacity-60"
-                >
-                  {locating
-                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Locating...</>
-                    : <><Navigation className="w-4 h-4" /> Locate Me</>
-                  }
+                <button onClick={handleLocateMe} disabled={locating}
+                  className="absolute bottom-4 right-4 z-[500] flex items-center gap-2 px-4 py-2.5 bg-white rounded-full shadow-lg border border-border text-sm font-semibold text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all disabled:opacity-60">
+                  {locating ? <><Loader2 className="w-4 h-4 animate-spin" /> Locating...</> : <><Navigation className="w-4 h-4" /> Locate Me</>}
                 </button>
                 {/* Fullscreen map button — mobile only */}
                 <button onClick={() => setFullscreenMap(true)}
-                  className="absolute bottom-4 left-4 z-50 md:hidden flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-full shadow-lg border border-primary text-sm font-semibold transition-all">
+                  className="absolute bottom-4 left-4 z-[500] md:hidden flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-full shadow-lg text-sm font-semibold">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                   </svg>
@@ -462,48 +493,29 @@ export function Home() {
 
             {/* Fullscreen map overlay — mobile */}
             {fullscreenMap && (
-              <div className="fixed inset-0 z-[100] md:hidden" style={{ touchAction: "none" }}>
-                <div ref={mapContainerRef} className="w-full h-full bg-[#e8eaf0]" style={{ filter: "grayscale(0.3) brightness(0.96) contrast(0.9) saturate(0.5)" }}>
-                  <PigeonMap
-                    center={mapCenter}
-                    zoom={mapZoom}
-                    onBoundsChanged={({ center, zoom }) => { setMapCenter(center); setMapZoom(zoom); }}
-                    provider={warmMapProvider}
-                    attribution={false}
-                  >
-                    <ZoomControl />
-                    {userLocation && (
-                      <Overlay anchor={userLocation} offset={[0, 0]}>
-                        <UserLocationPin />
-                      </Overlay>
-                    )}
-                    {clusters.map((cluster, i) =>
-                      cluster.shops.length === 1 ? (
-                        <Overlay key={cluster.shops[0].id} anchor={[cluster.lat, cluster.lng]} offset={[0, 0]}>
-                          <CoffeeMapPin
-                            shop={cluster.shops[0]}
-                            showLabel={mapZoom >= 14}
-                            onClick={() => { setFullscreenMap(false); openShopModal(cluster.shops[0]); }} />
-                        </Overlay>
-                      ) : (
-                        <Overlay key={`cluster-${i}`} anchor={[cluster.lat, cluster.lng]} offset={[0, 0]}>
-                          <ClusterPin count={cluster.shops.length} onClick={() => {
-                            setMapCenter([cluster.lat, cluster.lng]);
-                            setMapZoom(mapZoom + 2);
-                          }} />
-                        </Overlay>
-                      )
-                    )}
-                  </PigeonMap>
-                </div>
-                {/* Close button */}
+              <div className="fixed inset-0 z-[1000] md:hidden">
+                <MapContainer
+                  center={mapCenter}
+                  zoom={mapZoom}
+                  style={{ width: "100%", height: "100%" }}
+                  zoomControl={true}
+                >
+                  <LeafletMapInner
+                    mapCenter={mapCenter}
+                    mapZoom={mapZoom}
+                    userLocation={userLocation}
+                    clusters={clusters}
+                    onBoundsChanged={(c, z) => { setMapCenter(c); setMapZoom(z); }}
+                    onShopClick={(shop) => { setFullscreenMap(false); openShopModal(shop); }}
+                    onClusterClick={(lat, lng) => { setMapCenter([lat, lng]); setMapZoom(mapZoom + 2); }}
+                  />
+                </MapContainer>
                 <button onClick={() => setFullscreenMap(false)}
-                  className="absolute top-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 bg-white rounded-full shadow-lg text-sm font-semibold text-foreground border border-border">
+                  className="absolute top-4 right-4 z-[1001] flex items-center gap-2 px-4 py-2.5 bg-white rounded-full shadow-lg text-sm font-semibold border border-border">
                   <X className="w-4 h-4" /> Close
                 </button>
-                {/* Locate Me in fullscreen */}
                 <button onClick={handleLocateMe} disabled={locating}
-                  className="absolute bottom-24 right-4 z-50 flex items-center gap-2 px-4 py-2.5 bg-white rounded-full shadow-lg border border-border text-sm font-semibold">
+                  className="absolute bottom-24 right-4 z-[1001] flex items-center gap-2 px-4 py-2.5 bg-white rounded-full shadow-lg border border-border text-sm font-semibold">
                   {locating ? <><Loader2 className="w-4 h-4 animate-spin" /> Locating...</> : <><Navigation className="w-4 h-4" /> Locate Me</>}
                 </button>
               </div>
