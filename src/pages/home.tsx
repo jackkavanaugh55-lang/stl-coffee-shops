@@ -105,27 +105,6 @@ export function Home() {
   const [submitForm, setSubmitForm] = useState({ shopName: "", address: "", website: "", notes: "" });
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [openNowFilter, setOpenNowFilter] = useState(false);
-  const [openShopIds, setOpenShopIds] = useState<Set<string>>(new Set());
-
-  // Fetch open/closed status for all shops when Open Now filter is activated
-  useEffect(() => {
-    if (!openNowFilter) return;
-    const fetchAll = async () => {
-      const results = await Promise.allSettled(
-        coffeeShops.map(async shop => {
-          const res = await fetch(`/api/places/hours?name=${encodeURIComponent(shop.name)}&address=${encodeURIComponent(shop.address)}`);
-          if (!res.ok) return null;
-          const data = await res.json();
-          return data.openNow === true ? shop.id : null;
-        })
-      );
-      const ids = new Set<string>();
-      results.forEach(r => { if (r.status === "fulfilled" && r.value) ids.add(r.value); });
-      setOpenShopIds(ids);
-    };
-    fetchAll();
-  }, [openNowFilter]);
 
   // Area shop counts
   const areaShopCounts = useMemo(() => {
@@ -227,8 +206,7 @@ export function Home() {
     const matchesSearch = shop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       shop.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesArea = selectedArea === null || selectedArea === "All" || shop.area === selectedArea;
-    const matchesOpen = !openNowFilter || openShopIds.has(shop.id);
-    return matchesSearch && matchesArea && matchesOpen;
+    return matchesSearch && matchesArea;
   });
 
   const isHomeLanding = selectedArea === null && !searchTerm;
@@ -308,37 +286,28 @@ export function Home() {
 
       {/* Main content */}
       <main className="container mx-auto px-4 py-16 -mt-20 relative z-20">
-        {/* Mobile area picker - horizontally scrollable pills */}
-        <div className="md:hidden mb-6 -mx-4 px-4">
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <button onClick={() => { setSelectedArea(null); setSearchTerm(""); }}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                selectedArea === null ? "bg-primary border-primary text-primary-foreground" : "bg-white border-border/40 text-muted-foreground"
-              }`}>
-              🏠 Home
-            </button>
+        {/* Mobile area dropdown */}
+        <div className="md:hidden mb-6">
+          <select
+            value={selectedArea ?? "home"}
+            onChange={e => {
+              const v = e.target.value;
+              if (v === "home") { setSelectedArea(null); setSearchTerm(""); }
+              else setSelectedArea(v);
+            }}
+            className="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm appearance-none"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center" }}
+          >
+            <option value="home">🏠 Home</option>
             {sortedAreas.filter(a => a !== "All").map(area => (
-              <button key={area} onClick={() => setSelectedArea(area)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${
-                  selectedArea === area ? "bg-primary border-primary text-primary-foreground" : "bg-white border-border/40 text-muted-foreground"
-                }`}>
-                {area} <span className="opacity-60">·{areaShopCounts[area] ?? 0}</span>
-              </button>
+              <option key={area} value={area}>{area} · {areaShopCounts[area] ?? 0} shops</option>
             ))}
-          </div>
-          {/* Open Now toggle - mobile */}
-          <button onClick={() => setOpenNowFilter(o => !o)}
-            className={`mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
-              openNowFilter ? "bg-green-500 border-green-500 text-white" : "bg-white border-border/40 text-muted-foreground"
-            }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${openNowFilter ? "bg-white" : "bg-green-500"}`} />
-            Open Now
-          </button>
+          </select>
         </div>
 
         {/* Desktop filter pills */}
         <div className="hidden md:block mb-12">
-          <div className="flex flex-wrap gap-1.5 justify-center max-w-7xl mx-auto mb-3">
+          <div className="flex flex-wrap gap-1.5 justify-center max-w-7xl mx-auto">
             <button onClick={() => { setSelectedArea(null); setSearchTerm(""); }}
               className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all duration-200 border uppercase tracking-tight whitespace-nowrap ${
                 selectedArea === null ? "bg-primary border-primary text-primary-foreground shadow-sm scale-105" : "bg-white/60 backdrop-blur-sm border-border/40 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-white shadow-sm"
@@ -353,16 +322,6 @@ export function Home() {
                 {area} <span className="opacity-50 font-normal normal-case tracking-normal">·{areaShopCounts[area] ?? 0}</span>
               </button>
             ))}
-          </div>
-          {/* Open Now toggle - desktop */}
-          <div className="flex justify-center">
-            <button onClick={() => setOpenNowFilter(o => !o)}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                openNowFilter ? "bg-green-500 border-green-500 text-white shadow-sm" : "bg-white border-border/40 text-muted-foreground hover:border-green-400 hover:text-green-600"
-              }`}>
-              <span className={`w-2 h-2 rounded-full ${openNowFilter ? "bg-white animate-pulse" : "bg-green-500"}`} />
-              {openNowFilter ? "Showing Open Now — click to clear" : "Open Now"}
-            </button>
           </div>
         </div>
 
@@ -543,23 +502,21 @@ export function Home() {
       )}
 
       {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white border-t border-border/50 shadow-lg">
-        <div className="grid grid-cols-4 h-16">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 backdrop-blur-md border-t border-border/30 shadow-xl">
+        <div className="grid grid-cols-2 h-16">
           <button onClick={() => { setSelectedArea(null); setSearchTerm(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors ${selectedArea === null && !searchTerm ? "text-primary" : "text-muted-foreground"}`}>
-            <span className="text-lg">🏠</span> Home
-          </button>
-          <button onClick={() => { setSelectedArea("All"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors ${selectedArea === "All" ? "text-primary" : "text-muted-foreground"}`}>
-            <span className="text-lg">☕</span> All Shops
-          </button>
-          <button onClick={() => setOpenNowFilter(o => !o)}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors ${openNowFilter ? "text-green-600" : "text-muted-foreground"}`}>
-            <span className="text-lg">🟢</span> Open Now
+            className={`flex flex-col items-center justify-center gap-1 transition-colors ${selectedArea === null && !searchTerm ? "text-amber-800" : "text-gray-400"}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill={selectedArea === null && !searchTerm ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            <span className="text-[11px] font-semibold">Home</span>
           </button>
           <a href="#/passport"
-            className="flex flex-col items-center justify-center gap-1 text-[10px] font-semibold text-muted-foreground">
-            <span className="text-lg">📖</span> Passport
+            className="flex flex-col items-center justify-center gap-1 text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            <span className="text-[11px] font-semibold">Passport</span>
           </a>
         </div>
       </nav>
