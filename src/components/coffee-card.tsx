@@ -450,14 +450,6 @@ export function CoffeeCard({ shop, forceOpen, onModalClose }: { shop: CoffeeShop
     onModalClose?.();
   };
 
-  // Close modal on browser back
-  useEffect(() => {
-    if (!open) return;
-    const onPop = () => { setOpen(false); onModalClose?.(); };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, [open]);
-
   return (
     <>
       <div onClick={handleOpen}
@@ -475,16 +467,6 @@ export function CoffeeCard({ shop, forceOpen, onModalClose }: { shop: CoffeeShop
           {openNow !== null && (
             <div className={`absolute top-3 left-3 text-xs font-bold px-2 py-0.5 rounded-full ${openNow ? "bg-green-500 text-white" : "bg-gray-800/70 text-white"}`}>
               {openNow ? "Open" : "Closed"}
-            </div>
-          )}
-          {!openNow && shop.isNew && (
-            <div className="absolute top-3 left-3 text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
-              New
-            </div>
-          )}
-          {openNow && shop.isNew && (
-            <div className="absolute top-9 left-3 text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
-              New
             </div>
           )}
         </div>
