@@ -463,7 +463,7 @@ export function Home() {
                   zoom={mapZoom}
                   style={{ width: "100%", height: "100%", minHeight: 500 }}
                   zoomControl={true}
-                  scrollWheelZoom={false}
+                  scrollWheelZoom={true}
                 >
                   <LeafletMapInner
                     mapCenter={mapCenter}
