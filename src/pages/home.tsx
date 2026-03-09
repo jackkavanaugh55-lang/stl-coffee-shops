@@ -223,7 +223,10 @@ export function Home() {
       <section className="relative h-[60vh] md:h-[70vh] flex items-center justify-center overflow-hidden">
         {/* Passport button top-left */}
         <a href="#/passport" className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-black/30 hover:bg-black/50 backdrop-blur-sm text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors border border-white/20">
-          📖 My Passport
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+          My Passport
         </a>
         <div className="absolute inset-0 z-0">
           <img src="https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?q=80&w=2000&auto=format&fit=crop"
