@@ -1,4 +1,4 @@
-\import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Coffee, ArrowLeft, Star, MapPin, Plus, X, ChevronDown, ChevronUp, Award, TrendingUp } from "lucide-react";
 import { coffeeShops } from "@/lib/coffee-shops";
 import type { CoffeeShop } from "@/lib/coffee-shops";
