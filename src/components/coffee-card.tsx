@@ -464,6 +464,16 @@ export function CoffeeCard({ shop, forceOpen, onModalClose }: { shop: CoffeeShop
               {openNow ? "Open" : "Closed"}
             </div>
           )}
+          {!openNow && shop.isNew && (
+            <div className="absolute top-3 left-3 text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
+              New
+            </div>
+          )}
+          {openNow && shop.isNew && (
+            <div className="absolute top-9 left-3 text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
+              New
+            </div>
+          )}
         </div>
         <div className="p-4 pb-2">
           <h3 className="font-serif text-xl font-bold text-foreground leading-tight mb-1">{shop.name}</h3>
