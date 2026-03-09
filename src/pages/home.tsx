@@ -301,7 +301,7 @@ export function Home() {
             className="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm appearance-none"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center" }}
           >
-            <option value="home">🏠 Home</option>
+            <option value="home">Home</option>
             {sortedAreas.filter(a => a !== "All").map(area => (
               <option key={area} value={area}>{area} · {areaShopCounts[area] ?? 0} shops</option>
             ))}
@@ -438,7 +438,7 @@ export function Home() {
       {/* Submit a shop */}
       <section className="max-w-2xl mx-auto text-center px-4 py-16 mb-8">
         <div className="bg-gradient-to-br from-secondary to-muted/40 rounded-3xl p-10 border border-border/50 shadow-sm">
-          <div className="text-4xl mb-4">☕</div>
+          <Coffee className="w-10 h-10 mx-auto mb-4 text-primary opacity-60" />
           <h2 className="text-2xl font-serif font-bold text-foreground mb-2">Don't see your favorite spot?</h2>
           <p className="text-muted-foreground mb-6">Submit it here and we'll add it to the directory!</p>
           {!submitSuccess ? (
@@ -457,8 +457,8 @@ export function Home() {
                 onChange={e => setSubmitForm(p => ({...p, notes: e.target.value}))}
                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" rows={2} />
               <button type="submit"
-                className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors">
-                Submit Shop ✉️
+                className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
+                <Send className="w-4 h-4" /> Submit Shop
               </button>
             </form>
           ) : (
@@ -484,7 +484,12 @@ export function Home() {
           <div className="flex justify-center gap-6 text-sm font-medium opacity-80">
             <a href="#" className="hover:opacity-100 transition-opacity">About</a>
             <a href="#" className="hover:opacity-100 transition-opacity">Add a Shop</a>
-            <a href="#/passport" className="hover:opacity-100 transition-opacity">☕ Coffee Passport</a>
+            <a href="#/passport" className="hover:opacity-100 transition-opacity flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              Coffee Passport
+            </a>
             <button onClick={() => setShowContact(true)} className="hover:opacity-100 transition-opacity">Contact</button>
           </div>
           <div className="mt-12 pt-8 border-t border-primary-foreground/10 opacity-40 text-xs">
@@ -543,7 +548,9 @@ export function Home() {
               <X className="w-4 h-4" />
             </button>
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-xl">✉️</div>
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Send className="w-5 h-5 text-primary" />
+              </div>
               <div>
                 <h3 className="font-serif font-bold text-foreground text-lg">Get in Touch</h3>
                 <p className="text-xs text-muted-foreground">We'd love to hear from you</p>
