@@ -105,6 +105,36 @@ export function Home() {
   const [submitForm, setSubmitForm] = useState({ shopName: "", address: "", website: "", notes: "" });
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [openNowFilter, setOpenNowFilter] = useState(false);
+  const [openShopIds, setOpenShopIds] = useState<Set<string>>(new Set());
+
+  // Fetch open/closed status for all shops when Open Now filter is activated
+  useEffect(() => {
+    if (!openNowFilter) return;
+    const fetchAll = async () => {
+      const results = await Promise.allSettled(
+        coffeeShops.map(async shop => {
+          const res = await fetch(`/api/places/hours?name=${encodeURIComponent(shop.name)}&address=${encodeURIComponent(shop.address)}`);
+          if (!res.ok) return null;
+          const data = await res.json();
+          return data.openNow === true ? shop.id : null;
+        })
+      );
+      const ids = new Set<string>();
+      results.forEach(r => { if (r.status === "fulfilled" && r.value) ids.add(r.value); });
+      setOpenShopIds(ids);
+    };
+    fetchAll();
+  }, [openNowFilter]);
+
+  // Area shop counts
+  const areaShopCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const shop of coffeeShops) {
+      counts[shop.area] = (counts[shop.area] ?? 0) + 1;
+    }
+    return counts;
+  }, []);
   const [showContact, setShowContact] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
   const [contactSuccess, setContactSuccess] = useState(false);
@@ -197,7 +227,8 @@ export function Home() {
     const matchesSearch = shop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       shop.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesArea = selectedArea === null || selectedArea === "All" || shop.area === selectedArea;
-    return matchesSearch && matchesArea;
+    const matchesOpen = !openNowFilter || openShopIds.has(shop.id);
+    return matchesSearch && matchesArea && matchesOpen;
   });
 
   const isHomeLanding = selectedArea === null && !searchTerm;
@@ -277,40 +308,62 @@ export function Home() {
 
       {/* Main content */}
       <main className="container mx-auto px-4 py-16 -mt-20 relative z-20">
-        {/* Mobile dropdown */}
-        <div className="mb-8 md:hidden">
-          <select
-            value={selectedArea ?? "home"}
-            onChange={e => {
-              const v = e.target.value;
-              if (v === "home") { setSelectedArea(null); setSearchTerm(""); }
-              else setSelectedArea(v);
-            }}
-            className="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm"
-          >
-            <option value="home">🏠 Home</option>
-            {sortedAreas.map(area => (
-              <option key={area} value={area}>{area}</option>
+        {/* Mobile area picker - horizontally scrollable pills */}
+        <div className="md:hidden mb-6 -mx-4 px-4">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <button onClick={() => { setSelectedArea(null); setSearchTerm(""); }}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                selectedArea === null ? "bg-primary border-primary text-primary-foreground" : "bg-white border-border/40 text-muted-foreground"
+              }`}>
+              🏠 Home
+            </button>
+            {sortedAreas.filter(a => a !== "All").map(area => (
+              <button key={area} onClick={() => setSelectedArea(area)}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${
+                  selectedArea === area ? "bg-primary border-primary text-primary-foreground" : "bg-white border-border/40 text-muted-foreground"
+                }`}>
+                {area} <span className="opacity-60">·{areaShopCounts[area] ?? 0}</span>
+              </button>
             ))}
-          </select>
+          </div>
+          {/* Open Now toggle - mobile */}
+          <button onClick={() => setOpenNowFilter(o => !o)}
+            className={`mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+              openNowFilter ? "bg-green-500 border-green-500 text-white" : "bg-white border-border/40 text-muted-foreground"
+            }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${openNowFilter ? "bg-white" : "bg-green-500"}`} />
+            Open Now
+          </button>
         </div>
 
         {/* Desktop filter pills */}
-        <div className="hidden md:flex flex-wrap gap-1 md:gap-2 justify-center max-w-7xl mx-auto mb-12">
-          <button onClick={() => { setSelectedArea(null); setSearchTerm(""); }}
-            className={`px-3 py-1.5 rounded-md text-[10px] md:text-[11px] font-bold transition-all duration-200 border uppercase tracking-tight whitespace-nowrap ${
-              selectedArea === null ? "bg-primary border-primary text-primary-foreground shadow-sm scale-105" : "bg-white/60 backdrop-blur-sm border-border/40 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-white shadow-sm"
-            }`}>
-            Home
-          </button>
-          {sortedAreas.map((area) => (
-            <button key={area} onClick={() => setSelectedArea(area)}
-              className={`px-3 py-1.5 rounded-md text-[10px] md:text-[11px] font-bold transition-all duration-200 border uppercase tracking-tight whitespace-nowrap ${
-                selectedArea === area ? "bg-primary border-primary text-primary-foreground shadow-sm scale-105" : "bg-white/60 backdrop-blur-sm border-border/40 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-white shadow-sm"
+        <div className="hidden md:block mb-12">
+          <div className="flex flex-wrap gap-1.5 justify-center max-w-7xl mx-auto mb-3">
+            <button onClick={() => { setSelectedArea(null); setSearchTerm(""); }}
+              className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all duration-200 border uppercase tracking-tight whitespace-nowrap ${
+                selectedArea === null ? "bg-primary border-primary text-primary-foreground shadow-sm scale-105" : "bg-white/60 backdrop-blur-sm border-border/40 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-white shadow-sm"
               }`}>
-              {area}
+              Home
             </button>
-          ))}
+            {sortedAreas.filter(a => a !== "All").map((area) => (
+              <button key={area} onClick={() => setSelectedArea(area)}
+                className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all duration-200 border uppercase tracking-tight whitespace-nowrap ${
+                  selectedArea === area ? "bg-primary border-primary text-primary-foreground shadow-sm scale-105" : "bg-white/60 backdrop-blur-sm border-border/40 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-white shadow-sm"
+                }`}>
+                {area} <span className="opacity-50 font-normal normal-case tracking-normal">·{areaShopCounts[area] ?? 0}</span>
+              </button>
+            ))}
+          </div>
+          {/* Open Now toggle - desktop */}
+          <div className="flex justify-center">
+            <button onClick={() => setOpenNowFilter(o => !o)}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                openNowFilter ? "bg-green-500 border-green-500 text-white shadow-sm" : "bg-white border-border/40 text-muted-foreground hover:border-green-400 hover:text-green-600"
+              }`}>
+              <span className={`w-2 h-2 rounded-full ${openNowFilter ? "bg-white animate-pulse" : "bg-green-500"}`} />
+              {openNowFilter ? "Showing Open Now — click to clear" : "Open Now"}
+            </button>
+          </div>
         </div>
 
 
@@ -488,6 +541,31 @@ export function Home() {
           </svg>
         </button>
       )}
+
+      {/* Mobile bottom nav */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white border-t border-border/50 shadow-lg">
+        <div className="grid grid-cols-4 h-16">
+          <button onClick={() => { setSelectedArea(null); setSearchTerm(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors ${selectedArea === null && !searchTerm ? "text-primary" : "text-muted-foreground"}`}>
+            <span className="text-lg">🏠</span> Home
+          </button>
+          <button onClick={() => { setSelectedArea("All"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors ${selectedArea === "All" ? "text-primary" : "text-muted-foreground"}`}>
+            <span className="text-lg">☕</span> All Shops
+          </button>
+          <button onClick={() => setOpenNowFilter(o => !o)}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors ${openNowFilter ? "text-green-600" : "text-muted-foreground"}`}>
+            <span className="text-lg">🟢</span> Open Now
+          </button>
+          <a href="#/passport"
+            className="flex flex-col items-center justify-center gap-1 text-[10px] font-semibold text-muted-foreground">
+            <span className="text-lg">📖</span> Passport
+          </a>
+        </div>
+      </nav>
+
+      {/* Extra padding on mobile to account for bottom nav */}
+      <div className="h-16 md:hidden" />
 
       <style>{`
         @keyframes fadeUp {
