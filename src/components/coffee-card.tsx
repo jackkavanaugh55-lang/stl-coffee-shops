@@ -338,6 +338,12 @@ function ShopModal({ shop, onClose }: { shop: CoffeeShop; onClose: () => void })
         <button onClick={onClose} className="absolute top-3 right-3 z-50 w-8 h-8 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition-colors">
           <X className="w-4 h-4" />
         </button>
+        <a href="#/" onClick={onClose} className="absolute top-3 left-3 z-50 flex items-center gap-1.5 bg-black/40 text-white text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-black/60 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          Home
+        </a>
         <div className="overflow-y-auto max-h-[90vh]">
           <div className="relative">
             <PhotoGallery shop={shop} />
