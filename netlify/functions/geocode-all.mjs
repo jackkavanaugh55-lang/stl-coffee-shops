@@ -1,7 +1,8 @@
 // Netlify Function: geocode-all.mjs
-// Add to netlify/functions/ folder, then visit:
-// https://stlcoffeespot.com/.netlify/functions/geocode-all
-// Copy the JSON output and send to Claude
+// Uses Places Text Search API (already enabled on your key)
+// Replace the existing netlify/functions/geocode-all.mjs with this file
+// Then visit: https://magnificent-brioche-ecb9bd.netlify.app/api/geocode-all
+// Copy all the JSON and paste it to Claude
 
 const shops = [
   { id: "1", address: "3700 S Jefferson Ave, St. Louis, MO 63118" },
@@ -42,7 +43,7 @@ const shops = [
   { id: "k4", address: "52 N Euclid Ave, St. Louis, MO 63108" },
   { id: "k5", address: "17211 Chesterfield Airport Rd, Chesterfield, MO 63005" },
   { id: "k7", address: "4590 Children's Place, Saint Louis, MO 63110" },
-  { id: "k8", address: "520 S Euclid Ave, St. Louis, MO 63110" },
+  { id: "k8", address: "520 S Euclid Ave, St. Louis, MO 63108" },
   { id: "a1", address: "5532 S Lindbergh Blvd, St. Louis, MO 63123" },
   { id: "b1", address: "15480 Clayton Rd, Ballwin, MO 63011" },
   { id: "bp1", address: "1926 Cherokee St, St. Louis, MO 63118" },
@@ -83,7 +84,7 @@ const shops = [
   { id: "wc1", address: "109 Ballpark Dr, Ballwin, MO 63011" },
   { id: "wc2", address: "15957 Manchester Rd, Ellisville, MO 63011" },
   { id: "wc4", address: "1316 Big Bend Rd, Manchester, MO 63021" },
-  { id: "wc5", address: "14248 Manchester Rd, Suite D, Ballwin, MO 63011" },
+  { id: "wc5", address: "14248 Manchester Rd, Ballwin, MO 63011" },
   { id: "wc6", address: "14438 Clayton Rd, Ballwin, MO 63011" },
   { id: "wc7", address: "14240 Manchester Rd, Manchester, MO 63011" },
   { id: "wc9", address: "16917 Manchester Rd, Wildwood, MO 63040" },
@@ -91,7 +92,7 @@ const shops = [
   { id: "nc1", address: "100 N Florissant Rd, Ferguson, MO 63135" },
   { id: "nc2", address: "8406 Natural Bridge Rd, St. Louis, MO 63121" },
   { id: "nc3", address: "1280 Saint Cyr Rd, St. Louis, MO 63137" },
-  { id: "nc4", address: "3191 Ashby Rd, Suite 2, St. Ann, MO 63074" },
+  { id: "nc4", address: "3191 Ashby Rd, St. Ann, MO 63074" },
   { id: "nc5", address: "11424 Dorsett Rd, Maryland Heights, MO 63043" },
   { id: "nc6", address: "8909 Lackland Rd, Overland, MO 63114" },
   { id: "nc8", address: "12075 Dorsett Rd, Maryland Heights, MO 63043" },
@@ -100,7 +101,7 @@ const shops = [
   { id: "nc11", address: "101 N Main St, St. Charles, MO 63301" },
   { id: "sc1b", address: "336 S Main St, St. Charles, MO 63301" },
   { id: "sc2", address: "205 Main St, Winfield, MO 63389" },
-  { id: "sc3", address: "20 Meadows Circle Dr, Suite 216, Lake St Louis, MO 63367" },
+  { id: "sc3", address: "20 Meadows Circle Dr, Lake St Louis, MO 63367" },
   { id: "sc4", address: "5523 Oak St, Cottleville, MO 63304" },
   { id: "sc5", address: "816 N Kingshighway St, St. Charles, MO 63301" },
   { id: "sc6", address: "5020 Hwy P, Wentzville, MO 63385" },
@@ -129,11 +130,11 @@ const shops = [
   { id: "kaldis_ellisv", address: "147 Clarkson Road, Ellisville, MO 63011" },
   { id: "kaldis_ladue", address: "9214 Clayton Rd, St. Louis, MO 63124" },
   { id: "kaldis_crescent", address: "187 Carondelet Plaza, Clayton, MO 63105" },
-  { id: "upshot_flyby", address: "3172 Morgan Ford Rd Suite C, St. Louis, MO 63116" },
+  { id: "upshot_flyby", address: "3172 Morgan Ford Rd, St. Louis, MO 63116" },
   { id: "upshot_hifi", address: "8401 Maryland Ave, Clayton, MO 63105" },
   { id: "wg_cafeabbey", address: "322 S Main St, Columbia, IL 62236" },
   { id: "wg_oatshoney", address: "624 N New Ballas Rd, Creve Coeur, MO 63141" },
-  { id: "wg_cove", address: "6060 Telegraph Rd Suite B, St. Louis, MO 63129" },
+  { id: "wg_cove", address: "6060 Telegraph Rd, St. Louis, MO 63129" },
   { id: "kw_nathanielreid", address: "11243 Manchester Rd, Kirkwood, MO 63122" },
   { id: "kw_crookedtree", address: "559 1st Capitol Dr, St. Charles, MO 63301" },
   { id: "kw_littlesloft", address: "117 W Argonne Dr, Kirkwood, MO 63122" },
@@ -147,13 +148,13 @@ const shops = [
   { id: "uc_cafefer", address: "16626 Old Chesterfield Rd, Chesterfield, MO 63017" },
   { id: "mw_provingground", address: "180 Columbia Centre Dr, Columbia, IL 62236" },
   { id: "mw_lacosecha", address: "7360 Manchester Rd, Maplewood, MO 63143" },
-  { id: "mw_brewsbikes", address: "17089 N Outer 40 Rd Suite 138, Chesterfield, MO 63005" },
-  { id: "mw_tiltedheads", address: "2961 Dougherty Ferry Rd Suite 110, St. Louis, MO 63122" },
+  { id: "mw_brewsbikes", address: "17089 N Outer 40 Rd, Chesterfield, MO 63005" },
+  { id: "mw_tiltedheads", address: "2961 Dougherty Ferry Rd, St. Louis, MO 63122" },
   { id: "fg_bridge", address: "3257-1 Domain St, St. Charles, MO 63301" },
   { id: "fg_longstory", address: "732 S Illinois St, Belleville, IL 62220" },
   { id: "stc_post", address: "300 Alby St, Alton, IL 62002" },
   { id: "stc_222", address: "222 St Louis St, Edwardsville, IL 62025" },
-  { id: "stc_qahwatime", address: "5469 Baumgartner Road Suite 111, St. Louis, MO 63129" },
+  { id: "stc_qahwatime", address: "5469 Baumgartner Road, St. Louis, MO 63129" },
   { id: "stc_pour", address: "322 E Main St, Belleville, IL 62220" },
   { id: "cc_maeva", address: "1320 Milton Rd, Alton, IL 62002" },
   { id: "ch_sweetwaters", address: "4071 Chouteau Ave, St. Louis, MO 63110" },
@@ -162,7 +163,7 @@ const shops = [
   { id: "bw_espressoyourself", address: "5351 Devonshire Ave, St. Louis, MO 63109" },
   { id: "mc_verona", address: "101 E Main St, Collinsville, IL 62234" },
   { id: "mc_twpikes", address: "2528 Gravois Rd, High Ridge, MO 63049" },
-  { id: "il_goshen_edw", address: "6120 Shoger Dr Suite A, Edwardsville, IL 62025" },
+  { id: "il_goshen_edw", address: "6120 Shoger Dr, Edwardsville, IL 62025" },
   { id: "il_goshen_gc", address: "1 Junction Dr, Glen Carbon, IL 62034" },
   { id: "il_germania_alton", address: "211 Ridge St, Alton, IL 62002" },
   { id: "il_germania_ealton", address: "Eastgate Plaza, East Alton, IL 62024" },
@@ -173,37 +174,31 @@ const shops = [
   { id: "dp_dailybread", address: "11719 Manchester Rd, St. Louis, MO 63131" },
   { id: "latte_lounge2", address: "3131 Olive St, St. Louis, MO 63103" },
   { id: "kentzo_ofallon", address: "111 N Main St, O'Fallon, MO 63366" },
-  { id: "ek_orangecouch", address: "98 The Legends Parkway Suite 101, Eureka, MO 63025" },
+  { id: "ek_orangecouch", address: "98 The Legends Parkway, Eureka, MO 63025" },
   { id: "ek_sarahscentral", address: "127 S Central Ave, Eureka, MO 63025" },
   { id: "gl_glendagrind", address: "421 N Sappington Rd, Glendale, MO 63122" },
   { id: "wg_telva", address: "60 N Gore Ave, Webster Groves, MO 63119" },
 ];
 
+async function geocode(address, apiKey) {
+  const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(address)}&key=${apiKey}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (data.status === "OK" && data.results.length > 0) {
+    const loc = data.results[0].geometry.location;
+    return { lat: parseFloat(loc.lat.toFixed(4)), lng: parseFloat(loc.lng.toFixed(4)) };
+  }
+  return { error: data.status };
+}
+
 export default async (req, context) => {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
-  if (!apiKey) {
-    return new Response(JSON.stringify({ error: "No API key" }), { status: 500 });
-  }
+  if (!apiKey) return new Response(JSON.stringify({ error: "No API key" }), { status: 500 });
 
   const results = {};
-
   for (const shop of shops) {
-    try {
-      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(shop.address)}&key=${apiKey}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.status === "OK") {
-        const loc = data.results[0].geometry.location;
-        results[shop.id] = {
-          lat: parseFloat(loc.lat.toFixed(4)),
-          lng: parseFloat(loc.lng.toFixed(4)),
-        };
-      } else {
-        results[shop.id] = { error: data.status };
-      }
-    } catch (e) {
-      results[shop.id] = { error: e.message };
-    }
+    results[shop.id] = await geocode(shop.address, apiKey);
+    await new Promise(r => setTimeout(r, 100));
   }
 
   return new Response(JSON.stringify(results, null, 2), {
