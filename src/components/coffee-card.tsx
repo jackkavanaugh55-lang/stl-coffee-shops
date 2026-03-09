@@ -482,7 +482,7 @@ export function CoffeeCard({ shop, forceOpen, onModalClose }: { shop: CoffeeShop
             ))}
           </div>
         </div>
-        <div className="p-4 pt-2 grid grid-cols-3 gap-2">
+        <div className="p-4 pt-2 grid grid-cols-2 gap-2">
           <button className="flex items-center justify-center gap-1 py-1.5 px-3 border border-primary/20 rounded-lg text-xs font-medium text-foreground hover:bg-primary/5 hover:text-primary transition-colors">
             <span className="text-sm leading-none">☕</span> Details
           </button>
@@ -491,10 +491,6 @@ export function CoffeeCard({ shop, forceOpen, onModalClose }: { shop: CoffeeShop
             className="flex items-center justify-center gap-1 py-1.5 px-3 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:bg-primary/90 transition-colors">
             <Map className="w-3 h-3" /> Directions
           </a>
-          <button onClick={share}
-            className="flex items-center justify-center py-1.5 px-2 border border-primary/20 rounded-lg text-foreground hover:bg-primary/5 hover:text-primary transition-colors">
-            {copied ? <Check className="w-3 h-3 text-green-500" /> : <Share2 className="w-3 h-3" />}
-          </button>
         </div>
       </div>
       {open && <ShopModal shop={shop} onClose={handleClose} />}
