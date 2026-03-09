@@ -404,7 +404,7 @@ export function Home() {
                   Get Real-time Directions
                 </a>
               </div>
-              <div ref={mapContainerRef} className="relative h-[500px] md:h-auto bg-[#f3f1ed]" style={{ filter: "sepia(0.25) saturate(0.9) brightness(1.05)", touchAction: "none", userSelect: "none" }}>
+              <div ref={mapContainerRef} className="relative h-[500px] md:h-auto bg-[#e8eaf0]" style={{ filter: "grayscale(0.3) brightness(0.96) contrast(0.9) saturate(0.5)", touchAction: "none", userSelect: "none" }}>
                 <PigeonMap
                   center={mapCenter}
                   zoom={mapZoom}
