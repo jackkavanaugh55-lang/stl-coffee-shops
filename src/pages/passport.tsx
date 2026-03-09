@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+\import { useState, useEffect, useMemo } from "react";
 import { Coffee, ArrowLeft, Star, MapPin, Plus, X, ChevronDown, ChevronUp, Award, TrendingUp } from "lucide-react";
 import { coffeeShops } from "@/lib/coffee-shops";
 import type { CoffeeShop } from "@/lib/coffee-shops";
@@ -96,7 +96,9 @@ function CheckInModal({ shop, existing, onSave, onClose }: {
           <X className="w-4 h-4" />
         </button>
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-xl">☕</div>
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+            <Coffee className="w-5 h-5 text-amber-700" />
+          </div>
           <div>
             <h3 className="font-serif font-bold text-gray-900 text-lg leading-tight">{shop.name}</h3>
             <p className="text-xs text-amber-600">{shop.area}</p>
@@ -132,7 +134,7 @@ function CheckInModal({ shop, existing, onSave, onClose }: {
           <button onClick={onClose} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
           <button onClick={handleSave} disabled={!drink.trim()}
             className="flex-1 py-2.5 bg-amber-800 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 disabled:opacity-40 transition-colors">
-            {existing ? "Update Visit" : "Stamp Passport ✓"}
+            {existing ? "Update Visit" : <span className="flex items-center justify-center gap-1.5">Stamp Passport <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg></span>}
           </button>
         </div>
       </div>
@@ -150,8 +152,10 @@ function ShopRow({ shop, checkIn, onCheckin, onEdit, onRemove }: {
   const visited = !!checkIn;
   return (
     <div className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${visited ? "border-amber-200 bg-amber-50/50" : "border-gray-100 bg-white hover:border-amber-100"}`}>
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-lg transition-all ${visited ? "bg-amber-800 shadow-md" : "bg-gray-100"}`}>
-        {visited ? "✓" : "☕"}
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all ${visited ? "bg-amber-800 shadow-md" : "bg-gray-100"}`}>
+        {visited
+          ? <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+          : <Coffee className="w-5 h-5 text-gray-400" />}
       </div>
       <div className="flex-1 min-w-0">
         <p className={`font-semibold text-sm truncate ${visited ? "text-amber-900" : "text-gray-700"}`}>{shop.name}</p>
@@ -351,13 +355,13 @@ export default function Passport() {
             {/* Stats row */}
             <div className="grid grid-cols-4 gap-3 mt-6">
               {[
-                { label: "Visited", value: visitedCount, emoji: "✓" },
-                { label: "Remaining", value: totalCount - visitedCount, emoji: "☕" },
-                { label: "Areas Done", value: areasCompleted, emoji: "📍" },
-                { label: "Drinks Tried", value: uniqueDrinks, emoji: "🥤" },
+                { label: "Visited", icon: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>, value: visitedCount },
+                { label: "Remaining", icon: <Coffee className="w-5 h-5" />, value: totalCount - visitedCount },
+                { label: "Areas Done", icon: <MapPin className="w-5 h-5" />, value: areasCompleted },
+                { label: "Drinks Tried", icon: <Star className="w-5 h-5" />, value: uniqueDrinks },
               ].map(s => (
                 <div key={s.label} className="bg-white/10 rounded-2xl p-3 text-center backdrop-blur-sm">
-                  <div className="text-xl mb-1">{s.emoji}</div>
+                  <div className="flex justify-center mb-1 opacity-80">{s.icon}</div>
                   <div className="text-xl font-bold">{s.value}</div>
                   <div className="text-amber-300 text-[10px] font-medium uppercase tracking-wide">{s.label}</div>
                 </div>
@@ -391,7 +395,9 @@ export default function Passport() {
             <div className="space-y-3">
               {recentCheckIns.map(({ ci, shop }) => shop && (
                 <div key={ci.shopId} className="flex items-center gap-4 bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                  <div className="w-10 h-10 rounded-full bg-amber-800 text-white flex items-center justify-center text-lg shrink-0">✓</div>
+                  <div className="w-10 h-10 rounded-full bg-amber-800 text-white flex items-center justify-center shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-800 text-sm truncate">{shop.name}</p>
                     <p className="text-xs text-amber-700 truncate">"{ci.drink}"</p>
@@ -435,7 +441,7 @@ export default function Passport() {
               {(["all", "visited", "unvisited"] as const).map(f => (
                 <button key={f} onClick={() => setFilter(f)}
                   className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${filter === f ? "bg-amber-800 text-white" : "bg-white text-gray-600 border border-gray-200 hover:border-amber-200"}`}>
-                  {f === "all" ? `All (${coffeeShops.length})` : f === "visited" ? `✓ ${visitedCount}` : `☕ ${totalCount - visitedCount}`}
+                  {f === "all" ? `All (${coffeeShops.length})` : f === "visited" ? `Visited (${visitedCount})` : `Unvisited (${totalCount - visitedCount})`}
                 </button>
               ))}
             </div>
@@ -480,7 +486,7 @@ export default function Passport() {
                             <div className="flex items-center justify-between mb-1.5">
                               <span className="font-semibold text-sm text-gray-700 truncate mr-2">{area}</span>
                               <span className={`text-xs font-bold shrink-0 ${stats.visited === stats.total ? "text-amber-700" : "text-gray-400"}`}>
-                                {stats.visited === stats.total && stats.total > 0 ? "🏆 " : ""}{stats.visited}/{stats.total}
+                                {stats.visited === stats.total && stats.total > 0 ? <><Award className="w-3.5 h-3.5 text-amber-600 inline mr-0.5" />{stats.visited}/{stats.total}</> : `${stats.visited}/${stats.total}`}
                               </span>
                             </div>
                             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
