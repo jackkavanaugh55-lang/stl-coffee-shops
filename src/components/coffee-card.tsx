@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Star, MapPin, ExternalLink, Menu, Map, Info, MessageCircle, Send, User, ChevronLeft, ChevronRight, Camera, X, Share2, Check, Clock, Flag } from "lucide-react";
 import type { CoffeeShop } from "@/lib/coffee-shops";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -440,14 +440,27 @@ export function CoffeeCard({ shop, forceOpen, onModalClose }: { shop: CoffeeShop
   const { share, copied } = useShareShop(shop.id);
   const { openNow } = useShopHours(shop);
 
+  const handleOpen = () => {
+    setOpen(true);
+    window.history.pushState({ shopModal: shop.id }, "");
+  };
+
   const handleClose = () => {
     setOpen(false);
     onModalClose?.();
   };
 
+  // Close modal on browser back
+  useEffect(() => {
+    if (!open) return;
+    const onPop = () => { setOpen(false); onModalClose?.(); };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [open]);
+
   return (
     <>
-      <div onClick={() => setOpen(true)}
+      <div onClick={handleOpen}
         className="overflow-hidden group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card rounded-2xl flex flex-col h-full cursor-pointer hover:-translate-y-1">
         <div className="relative aspect-[4/3] overflow-hidden">
           <ShopImage shop={shop} className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" />
