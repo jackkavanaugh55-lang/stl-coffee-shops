@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+=import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Search, MapPin, Coffee, ArrowRight, X, Navigation, Loader2, Send } from "lucide-react";
 import { coffeeShops, areas } from "@/lib/coffee-shops";
 import { CoffeeCard } from "@/components/coffee-card";
@@ -543,7 +543,7 @@ export function Home() {
       {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 backdrop-blur-md border-t border-border/30 shadow-xl">
         <div className="grid grid-cols-2 h-16">
-          <button onClick={() => { setSelectedArea(null); setSearchTerm(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+          <button onClick={() => { setSelectedArea(null); setSearchTerm(""); window.scrollTo({ top: 0, behavior: "smooth" }); window.dispatchEvent(new Event("close-all-modals")); }}
             className={`flex flex-col items-center justify-center gap-1 transition-colors ${selectedArea === null && !searchTerm ? "text-amber-800" : "text-gray-400"}`}>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill={selectedArea === null && !searchTerm ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
