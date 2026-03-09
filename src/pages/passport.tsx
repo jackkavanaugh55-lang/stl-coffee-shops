@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Coffee, ArrowLeft, Star, MapPin, Plus, X, ChevronDown, ChevronUp, Award, TrendingUp, Map as MapIcon } from "lucide-react";
+import { Coffee, ArrowLeft, Star, MapPin, Plus, X, ChevronDown, ChevronUp, Award, TrendingUp } from "lucide-react";
 import { coffeeShops } from "@/lib/coffee-shops";
 import type { CoffeeShop } from "@/lib/coffee-shops";
 
@@ -388,31 +388,6 @@ export default function Passport() {
           </div>
         )}
 
-        {/* Area Progress */}
-        <div>
-          <h2 className="font-serif text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <MapIcon className="w-5 h-5 text-amber-700" /> Progress by Area
-          </h2>
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
-            {areaStats.map(([area, stats]) => (
-              <div key={area} className="px-5 py-3">
-                <div className="flex items-center gap-3 cursor-pointer"
-                  onClick={() => setExpandedArea(expandedArea === area ? null : area)}>
-                  <div className="flex-1">
-                    <AreaProgress area={area} total={stats.total} visited={stats.visited} />
-                  </div>
-                  {stats.visited === stats.total && stats.total > 0
-                    ? <span className="text-lg shrink-0">🏆</span>
-                    : expandedArea === area
-                      ? <ChevronUp className="w-4 h-4 text-gray-300 shrink-0" />
-                      : <ChevronDown className="w-4 h-4 text-gray-300 shrink-0" />
-                  }
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Shop list */}
         <div>
           <h2 className="font-serif text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -421,36 +396,95 @@ export default function Passport() {
 
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search shops or areas..."
-              className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white" />
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+              <input value={search} onChange={e => { setSearch(e.target.value); setExpandedArea(null); }}
+                placeholder="Search shops or areas..."
+                className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white" />
+              {search && (
+                <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
             <div className="flex gap-2">
               {(["all", "visited", "unvisited"] as const).map(f => (
                 <button key={f} onClick={() => setFilter(f)}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-colors ${filter === f ? "bg-amber-800 text-white" : "bg-white text-gray-600 border border-gray-200 hover:border-amber-200"}`}>
-                  {f === "all" ? `All (${coffeeShops.length})` : f === "visited" ? `Visited (${visitedCount})` : `Left (${totalCount - visitedCount})`}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${filter === f ? "bg-amber-800 text-white" : "bg-white text-gray-600 border border-gray-200 hover:border-amber-200"}`}>
+                  {f === "all" ? `All (${coffeeShops.length})` : f === "visited" ? `✓ ${visitedCount}` : `☕ ${totalCount - visitedCount}`}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="space-y-2">
-            {filteredShops.length === 0 ? (
-              <div className="text-center py-16 text-gray-400">
-                <Coffee className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                <p className="text-sm">No shops match your search</p>
+          {/* Scrollable shop list */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {search.trim() ? (
+              /* Search results - flat list in scrollable box */
+              <div className="max-h-96 overflow-y-auto divide-y divide-gray-50">
+                {filteredShops.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <p className="text-sm">No shops match your search</p>
+                  </div>
+                ) : filteredShops.map(shop => (
+                  <ShopRow key={shop.id} shop={shop} checkIn={checkInMap.get(shop.id)}
+                    onCheckin={() => setCheckInTarget(shop)}
+                    onEdit={() => setEditTarget(shop)}
+                    onRemove={() => handleRemove(shop.id)} />
+                ))}
               </div>
-            ) : filteredShops.map(shop => (
-              <ShopRow
-                key={shop.id}
-                shop={shop}
-                checkIn={checkInMap.get(shop.id)}
-                onCheckin={() => setCheckInTarget(shop)}
-                onEdit={() => setEditTarget(shop)}
-                onRemove={() => handleRemove(shop.id)}
-              />
-            ))}
+            ) : (
+              /* Grouped by area - each area is a collapsible row */
+              <div className="divide-y divide-gray-50">
+                {areaStats
+                  .filter(([, stats]) => {
+                    if (filter === "visited") return stats.visited > 0;
+                    if (filter === "unvisited") return stats.visited < stats.total;
+                    return true;
+                  })
+                  .map(([area, stats]) => {
+                    const isOpen = expandedArea === area;
+                    const shopsInArea = coffeeShops.filter(s => s.area === area &&
+                      (filter === "visited" ? checkInMap.has(s.id) :
+                       filter === "unvisited" ? !checkInMap.has(s.id) : true));
+                    return (
+                      <div key={area}>
+                        <button
+                          onClick={() => setExpandedArea(isOpen ? null : area)}
+                          className="w-full flex items-center gap-4 px-5 py-3 hover:bg-amber-50/50 transition-colors text-left">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="font-semibold text-sm text-gray-700 truncate mr-2">{area}</span>
+                              <span className={`text-xs font-bold shrink-0 ${stats.visited === stats.total ? "text-amber-700" : "text-gray-400"}`}>
+                                {stats.visited === stats.total && stats.total > 0 ? "🏆 " : ""}{stats.visited}/{stats.total}
+                              </span>
+                            </div>
+                            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full transition-all duration-500"
+                                style={{ width: `${stats.total === 0 ? 0 : (stats.visited / stats.total) * 100}%` }} />
+                            </div>
+                          </div>
+                          {isOpen
+                            ? <ChevronUp className="w-4 h-4 text-gray-300 shrink-0" />
+                            : <ChevronDown className="w-4 h-4 text-gray-300 shrink-0" />}
+                        </button>
+                        {isOpen && (
+                          <div className="bg-gray-50/50 border-t border-gray-100 divide-y divide-gray-100">
+                            {shopsInArea.map(shop => (
+                              <ShopRow key={shop.id} shop={shop} checkIn={checkInMap.get(shop.id)}
+                                onCheckin={() => setCheckInTarget(shop)}
+                                onEdit={() => setEditTarget(shop)}
+                                onRemove={() => handleRemove(shop.id)} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
           </div>
+          <p className="text-xs text-gray-400 text-center mt-2">Click an area to expand its shops</p>
         </div>
       </main>
 
