@@ -342,8 +342,8 @@ function ShopModal({ shop, onClose }: { shop: CoffeeShop; onClose: () => void })
           <div className="relative">
             <PhotoGallery shop={shop} />
             <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-transparent to-transparent pointer-events-none z-20" />
-            <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between pointer-events-none z-20">
-              <div>
+            <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between z-20">
+              <div className="pointer-events-none">
                 <span className="inline-block bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full mb-2">{shop.area}</span>
                 <h2 className="text-3xl font-serif font-bold text-foreground">{shop.name}</h2>
               </div>
@@ -484,7 +484,7 @@ export function CoffeeCard({ shop, forceOpen, onModalClose }: { shop: CoffeeShop
         </div>
         <div className="p-4 pt-2 grid grid-cols-3 gap-2">
           <button className="flex items-center justify-center gap-1 py-1.5 px-3 border border-primary/20 rounded-lg text-xs font-medium text-foreground hover:bg-primary/5 hover:text-primary transition-colors">
-            <Info className="w-3 h-3" /> Details
+            <span className="text-sm leading-none">☕</span> Details
           </button>
           <a href={shop.googleMapsUrl} target="_blank" rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
@@ -492,8 +492,8 @@ export function CoffeeCard({ shop, forceOpen, onModalClose }: { shop: CoffeeShop
             <Map className="w-3 h-3" /> Directions
           </a>
           <button onClick={share}
-            className="flex items-center justify-center gap-1 py-1.5 px-3 border border-primary/20 rounded-lg text-xs font-medium text-foreground hover:bg-primary/5 hover:text-primary transition-colors">
-            {copied ? <><Check className="w-3 h-3 text-green-500" /> Copied!</> : <><Share2 className="w-3 h-3" /> Share</>}
+            className="flex items-center justify-center py-1.5 px-2 border border-primary/20 rounded-lg text-foreground hover:bg-primary/5 hover:text-primary transition-colors">
+            {copied ? <Check className="w-3 h-3 text-green-500" /> : <Share2 className="w-3 h-3" />}
           </button>
         </div>
       </div>
