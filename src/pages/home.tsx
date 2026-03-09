@@ -113,6 +113,8 @@ export function Home() {
     setMapSelectedShop(null);
   };
 
+  const [fullscreenMap, setFullscreenMap] = useState(false);
+
   // Handle browser back button closing the modal
   useEffect(() => {
     const onPop = () => setMapSelectedShop(null);
@@ -447,8 +449,65 @@ export function Home() {
                     : <><Navigation className="w-4 h-4" /> Locate Me</>
                   }
                 </button>
+                {/* Fullscreen map button — mobile only */}
+                <button onClick={() => setFullscreenMap(true)}
+                  className="absolute bottom-4 left-4 z-50 md:hidden flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-full shadow-lg border border-primary text-sm font-semibold transition-all">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                  Full Map
+                </button>
               </div>
             </section>
+
+            {/* Fullscreen map overlay — mobile */}
+            {fullscreenMap && (
+              <div className="fixed inset-0 z-[100] md:hidden" style={{ touchAction: "none" }}>
+                <div ref={mapContainerRef} className="w-full h-full bg-[#e8eaf0]" style={{ filter: "grayscale(0.3) brightness(0.96) contrast(0.9) saturate(0.5)" }}>
+                  <PigeonMap
+                    center={mapCenter}
+                    zoom={mapZoom}
+                    onBoundsChanged={({ center, zoom }) => { setMapCenter(center); setMapZoom(zoom); }}
+                    provider={warmMapProvider}
+                    attribution={false}
+                  >
+                    <ZoomControl />
+                    {userLocation && (
+                      <Overlay anchor={userLocation} offset={[0, 0]}>
+                        <UserLocationPin />
+                      </Overlay>
+                    )}
+                    {clusters.map((cluster, i) =>
+                      cluster.shops.length === 1 ? (
+                        <Overlay key={cluster.shops[0].id} anchor={[cluster.lat, cluster.lng]} offset={[0, 0]}>
+                          <CoffeeMapPin
+                            shop={cluster.shops[0]}
+                            showLabel={mapZoom >= 14}
+                            onClick={() => { setFullscreenMap(false); openShopModal(cluster.shops[0]); }} />
+                        </Overlay>
+                      ) : (
+                        <Overlay key={`cluster-${i}`} anchor={[cluster.lat, cluster.lng]} offset={[0, 0]}>
+                          <ClusterPin count={cluster.shops.length} onClick={() => {
+                            setMapCenter([cluster.lat, cluster.lng]);
+                            setMapZoom(mapZoom + 2);
+                          }} />
+                        </Overlay>
+                      )
+                    )}
+                  </PigeonMap>
+                </div>
+                {/* Close button */}
+                <button onClick={() => setFullscreenMap(false)}
+                  className="absolute top-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 bg-white rounded-full shadow-lg text-sm font-semibold text-foreground border border-border">
+                  <X className="w-4 h-4" /> Close
+                </button>
+                {/* Locate Me in fullscreen */}
+                <button onClick={handleLocateMe} disabled={locating}
+                  className="absolute bottom-24 right-4 z-50 flex items-center gap-2 px-4 py-2.5 bg-white rounded-full shadow-lg border border-border text-sm font-semibold">
+                  {locating ? <><Loader2 className="w-4 h-4 animate-spin" /> Locating...</> : <><Navigation className="w-4 h-4" /> Locate Me</>}
+                </button>
+              </div>
+            )}
           </>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-20">
