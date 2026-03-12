@@ -122,13 +122,8 @@ const GoogleIcon = ({ className }: { className?: string }) => (
 );
 
 function ShopImage({ shop, className }: { shop: CoffeeShop; className?: string }) {
-  const [useFallback, setUseFallback] = useState(false);
-  const src = useFallback
-    ? shop.image
-    : `/api/places/photo?id=${encodeURIComponent(shop.id)}&name=${encodeURIComponent(shop.name)}&address=${encodeURIComponent(shop.address)}`;
   return (
-    <img src={src} alt={shop.name} className={className}
-      onError={() => { if (!useFallback) setUseFallback(true); }} loading="lazy" />
+    <img src={shop.image} alt={shop.name} className={className} loading="lazy" />
   );
 }
 
