@@ -122,8 +122,13 @@ const GoogleIcon = ({ className }: { className?: string }) => (
 );
 
 function ShopImage({ shop, className }: { shop: CoffeeShop; className?: string }) {
+  const [useFallback, setUseFallback] = useState(false);
+  const src = useFallback
+    ? shop.image
+    : `/api/places/photo?id=${encodeURIComponent(shop.id)}&name=${encodeURIComponent(shop.name)}&address=${encodeURIComponent(shop.address)}`;
   return (
-    <img src={shop.image} alt={shop.name} className={className} loading="lazy" />
+    <img src={src} alt={shop.name} className={className}
+      onError={() => { if (!useFallback) setUseFallback(true); }} loading="lazy" />
   );
 }
 
@@ -414,7 +419,9 @@ function ShopModal({ shop, onClose }: { shop: CoffeeShop; onClose: () => void })
 
 export function CoffeeCard({ shop, forceOpen, onModalClose }: { shop: CoffeeShop; forceOpen?: boolean; onModalClose?: () => void }) {
   const [open, setOpen] = useState(forceOpen ?? false);
-  const { rating, reviewCount, openNow } = usePlaceDetails(shop);
+  const rating = shop.rating;
+  const reviewCount = shop.reviews;
+  const openNow = null;
   const { share, copied } = useShareShop(shop.id);
 
   const handleOpen = () => {
