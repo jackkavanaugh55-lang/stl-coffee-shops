@@ -13,17 +13,32 @@ interface Review {
   createdAt: string;
 }
 
-function useShopHours(shop: CoffeeShop) {
+function usePlaceDetails(shop: CoffeeShop) {
   const { data } = useQuery({
-    queryKey: ["shop-hours", shop.id],
+    queryKey: ["place-details", shop.id],
     queryFn: async () => {
-      const res = await fetch(`/api/places/hours?name=${encodeURIComponent(shop.name)}&address=${encodeURIComponent(shop.address)}`);
+      const res = await fetch(`/api/places/details?name=${encodeURIComponent(shop.name)}&address=${encodeURIComponent(shop.address)}`);
       if (!res.ok) return null;
-      return res.json() as Promise<{ openNow: boolean | null; weekdayDescriptions: string[] }>;
+      return res.json() as Promise<{
+        rating: number | null;
+        reviewCount: number | null;
+        openNow: boolean | null;
+        weekdayDescriptions: string[];
+        photoUrls: string[];
+      }>;
     },
     staleTime: 60 * 60 * 1000,
   });
-  return { openNow: data?.openNow ?? null, weekdayDescriptions: data?.weekdayDescriptions ?? [] };
+  return {
+    rating: data?.rating ?? shop.rating,
+    reviewCount: data?.reviewCount ?? shop.reviews,
+    isLive: data?.rating != null,
+    openNow: data?.openNow ?? null,
+    weekdayDescriptions: data?.weekdayDescriptions ?? [],
+    photoUrls: data?.photoUrls?.length
+      ? data.photoUrls
+      : [`/api/places/photo?name=${encodeURIComponent(shop.name)}&address=${encodeURIComponent(shop.address)}&index=0`],
+  };
 }
 
 function ClaimModal({ shop, onClose }: { shop: CoffeeShop; onClose: () => void }) {
@@ -95,36 +110,7 @@ function ClaimModal({ shop, onClose }: { shop: CoffeeShop; onClose: () => void }
   );
 }
 
-function useGoogleRating(shop: CoffeeShop) {
-  const { data } = useQuery({
-    queryKey: ["google-rating", shop.id],
-    queryFn: async () => {
-      const res = await fetch(`/api/places/rating?name=${encodeURIComponent(shop.name)}&address=${encodeURIComponent(shop.address)}`);
-      if (!res.ok) return null;
-      return res.json() as Promise<{ rating: number | null; reviewCount: number | null }>;
-    },
-  });
-  return {
-    rating: data?.rating ?? shop.rating,
-    reviewCount: data?.reviewCount ?? shop.reviews,
-    isLive: data?.rating != null,
-  };
-}
 
-function useShopPhotos(shop: CoffeeShop) {
-  const { data } = useQuery({
-    queryKey: ["shop-photos", shop.id],
-    queryFn: async () => {
-      const res = await fetch(`/api/places/photos?name=${encodeURIComponent(shop.name)}&address=${encodeURIComponent(shop.address)}`);
-      if (!res.ok) return { count: 1, photoUrls: [] as string[] };
-      return res.json() as Promise<{ count: number; photoUrls: string[] }>;
-    },
-  });
-  return {
-    count: data?.count ?? 1,
-    photoUrls: data?.photoUrls?.length ? data.photoUrls : [`/api/places/photo?name=${encodeURIComponent(shop.name)}&address=${encodeURIComponent(shop.address)}`],
-  };
-}
 
 const GoogleIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -136,20 +122,14 @@ const GoogleIcon = ({ className }: { className?: string }) => (
 );
 
 function ShopImage({ shop, className }: { shop: CoffeeShop; className?: string }) {
-  const [useFallback, setUseFallback] = useState(false);
-  const src = useFallback
-    ? shop.image
-    : `/api/places/photo?name=${encodeURIComponent(shop.name)}&address=${encodeURIComponent(shop.address)}`;
   return (
-    <img src={src} alt={shop.name} className={className}
-      onError={() => { if (!useFallback) setUseFallback(true); }} loading="lazy" />
+    <img src={shop.image} alt={shop.name} className={className} loading="lazy" />
   );
 }
 
-function PhotoGallery({ shop }: { shop: CoffeeShop }) {
+function PhotoGallery({ shop, photoUrls }: { shop: CoffeeShop; photoUrls: string[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [failedIndexes, setFailedIndexes] = useState<Set<number>>(new Set());
-  const { photoUrls } = useShopPhotos(shop);
 
   const goNext = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -323,11 +303,9 @@ function useShareShop(shopId: string) {
   return { share, copied };
 }
 
-// Modal component
 function ShopModal({ shop, onClose }: { shop: CoffeeShop; onClose: () => void }) {
-  const { rating, reviewCount } = useGoogleRating(shop);
+  const { rating, reviewCount, openNow, weekdayDescriptions, photoUrls } = usePlaceDetails(shop);
   const { share, copied } = useShareShop(shop.id);
-  const { openNow, weekdayDescriptions } = useShopHours(shop);
   const [showClaim, setShowClaim] = useState(false);
   const [showHours, setShowHours] = useState(false);
   return (
@@ -340,7 +318,7 @@ function ShopModal({ shop, onClose }: { shop: CoffeeShop; onClose: () => void })
         </button>
         <div className="overflow-y-auto max-h-[90vh]">
           <div className="relative">
-            <PhotoGallery shop={shop} />
+            <PhotoGallery shop={shop} photoUrls={photoUrls} />
             <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-transparent to-transparent pointer-events-none z-20" />
             <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between z-20">
               <div className="pointer-events-none">
@@ -436,9 +414,8 @@ function ShopModal({ shop, onClose }: { shop: CoffeeShop; onClose: () => void })
 
 export function CoffeeCard({ shop, forceOpen, onModalClose }: { shop: CoffeeShop; forceOpen?: boolean; onModalClose?: () => void }) {
   const [open, setOpen] = useState(forceOpen ?? false);
-  const { rating, reviewCount } = useGoogleRating(shop);
+  const { rating, reviewCount, openNow } = usePlaceDetails(shop);
   const { share, copied } = useShareShop(shop.id);
-  const { openNow } = useShopHours(shop);
 
   const handleOpen = () => {
     setOpen(true);
